@@ -692,12 +692,17 @@ build_image:
 
   <!-- MODAL: Connect Remote Zot -->
   <div x-show="openAddRegistryModal" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl relative" @click.away="openAddRegistryModal = false">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl relative max-h-[90vh] overflow-y-auto" @click.away="openAddRegistryModal = false">
       <h3 class="text-base font-bold text-slate-900 dark:text-white mb-1">Connect Remote Zot Registry</h3>
       <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Add another internal or remote Zot instance to manage from ZotDeck.</p>
 
       <form @submit.prevent="submitAddRegistry">
-        <div class="space-y-4">
+        <div x-show="regError" class="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-600 dark:text-red-400 text-xs flex items-center space-x-2">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span x-text="regError"></span>
+        </div>
+
+        <div class="space-y-3.5">
           <div>
             <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Friendly Name *</label>
             <input type="text" x-model="newRegForm.name" required placeholder="e.g. Staging Zot, Production Cloud"
@@ -716,14 +721,35 @@ build_image:
                    class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
           </div>
 
+          <!-- Optional Credentials Section -->
+          <div class="pt-2 border-t border-slate-200 dark:border-slate-800 space-y-3">
+            <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Authentication Credentials</div>
+            <div>
+              <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Username (Optional)</label>
+              <input type="text" x-model="newRegForm.username" placeholder="e.g. admin (leave blank to use current session)"
+                     class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Password or API Token (Optional)</label>
+              <input type="password" x-model="newRegForm.password" placeholder="•••••••••••• (or zak_...)"
+                     class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+              <span class="text-[10px] text-slate-400 mt-1 block">Leave blank if this registry uses the same credentials as your current session.</span>
+            </div>
+          </div>
+
           <div class="flex justify-end space-x-2 pt-2">
             <button type="button" @click="openAddRegistryModal = false"
                     class="px-3.5 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs transition">
               Cancel
             </button>
-            <button type="submit"
-                    class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs shadow-md transition">
-              Connect Registry
+            <button type="submit" :disabled="submittingReg"
+                    class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs shadow-md transition disabled:opacity-50 flex items-center space-x-1.5">
+              <span x-show="!submittingReg">Test & Connect</span>
+              <span x-show="submittingReg" class="flex items-center space-x-1.5">
+                <svg class="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 12a8 8 0 018-8v8H4z"/></svg>
+                <span>Verifying...</span>
+              </span>
             </button>
           </div>
         </div>
@@ -852,7 +878,9 @@ build_image:
         activeRegistryId: 'local',
         activeRegistryName: 'Local Zot (Default)',
         openAddRegistryModal: false,
-        newRegForm: { name: '', endpoint: '', public_domain: '' },
+        submittingReg: false,
+        regError: '',
+        newRegForm: { name: '', endpoint: '', public_domain: '', username: '', password: '' },
 
         // Keys
         keys: [],
@@ -985,6 +1013,8 @@ build_image:
         },
 
         async submitAddRegistry() {
+          this.submittingReg = true;
+          this.regError = '';
           try {
             const res = await fetch('/api/registries', {
               method: 'POST',
@@ -993,12 +1023,17 @@ build_image:
             });
             if (res.ok) {
               this.openAddRegistryModal = false;
-              this.newRegForm = { name: '', endpoint: '', public_domain: '' };
+              this.newRegForm = { name: '', endpoint: '', public_domain: '', username: '', password: '' };
               await this.loadRegistries();
               this.showToast('Remote registry connected successfully');
+            } else {
+              const err = await res.json();
+              this.regError = err.detail || 'Failed to connect remote registry';
             }
           } catch (e) {
-            this.showToast('Failed to connect remote registry');
+            this.regError = 'Network error contacting backend';
+          } finally {
+            this.submittingReg = false;
           }
         },
 

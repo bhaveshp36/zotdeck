@@ -17,7 +17,7 @@ logger = logging.getLogger("zotdeck")
 app = FastAPI(
     title="ZotDeck",
     description="Lightweight Web Dashboard & Credential Manager for Zot OCI Registry",
-    version="1.2.0"
+    version="1.2.1"
 )
 
 # Static & Templates setup
@@ -57,6 +57,8 @@ class RegistryProfile(BaseModel):
     name: str
     endpoint: str
     public_domain: str
+    username: Optional[str] = None
+    password: Optional[str] = None
     is_default: bool = False
 
 default_registry = RegistryProfile(
@@ -74,6 +76,14 @@ def get_zot_client() -> ZotClient:
     reg = connected_registries.get(active_registry_id, default_registry)
     return ZotClient(base_url=reg.endpoint, public_url=reg.public_domain)
 
+def get_effective_token(token: str) -> str:
+    """Uses registry-specific credentials if configured, otherwise falls back to session token."""
+    reg = connected_registries.get(active_registry_id, default_registry)
+    if reg.username and reg.password:
+        raw_cred = f"{reg.username}:{reg.password}"
+        return base64.b64encode(raw_cred.encode()).decode()
+    return token
+
 # Schemas
 class LoginRequest(BaseModel):
     username: str
@@ -88,6 +98,8 @@ class AddRegistryRequest(BaseModel):
     name: str
     endpoint: str
     public_domain: str
+    username: Optional[str] = None
+    password: Optional[str] = None
 
 def get_auth_token(request: Request) -> str:
     auth_header = request.headers.get("Authorization")
@@ -108,7 +120,7 @@ async def index_page(request: Request):
         name="index.html",
         context={
             "app_name": "ZotDeck",
-            "version": "1.2.0",
+            "version": "1.2.1",
             "registry_host": client.public_url
         }
     )
@@ -154,30 +166,55 @@ async def get_current_user(token: str = Depends(get_auth_token)):
 
 @app.get("/api/registries")
 async def list_registries():
-    """Lists all configured registries and the active one."""
+    """Lists all configured registries with passwords masked."""
+    safe_list = []
+    for reg in connected_registries.values():
+        item = reg.dict()
+        item["has_custom_auth"] = bool(reg.username and reg.password)
+        item["password"] = "••••••••" if reg.password else None
+        safe_list.append(item)
     return {
         "active_id": active_registry_id,
-        "registries": list(connected_registries.values())
+        "registries": safe_list
     }
 
 @app.post("/api/registries")
 async def add_remote_registry(req: AddRegistryRequest, token: str = Depends(get_auth_token)):
-    """Connects a new remote Zot registry endpoint."""
+    """Connects and verifies a new remote Zot registry endpoint."""
+    test_client = ZotClient(base_url=req.endpoint.rstrip("/"), public_url=req.public_domain.rstrip("/"))
+    effective_token = token
+    if req.username and req.password:
+        raw_cred = f"{req.username}:{req.password}"
+        effective_token = base64.b64encode(raw_cred.encode()).decode()
+
+    # Test remote connection
+    is_valid = await test_client.verify_credentials(effective_token)
+    if not is_valid:
+        raise HTTPException(
+            status_code=400,
+            detail="Failed to connect to remote registry: verify URL, network reachability, and credentials."
+        )
+
     reg_id = f"reg-{len(connected_registries) + 1}"
     profile = RegistryProfile(
         id=reg_id,
         name=req.name,
         endpoint=req.endpoint.rstrip("/"),
         public_domain=req.public_domain.rstrip("/"),
+        username=req.username,
+        password=req.password,
         is_default=False
     )
     connected_registries[reg_id] = profile
     audit.log("REGISTRY_CONNECT", f"Connected remote registry '{req.name}' ({req.endpoint})")
-    return profile
+    
+    safe_profile = profile.dict()
+    safe_profile["has_custom_auth"] = bool(profile.username and profile.password)
+    safe_profile["password"] = "••••••••" if profile.password else None
+    return safe_profile
 
 @app.post("/api/registries/switch/{reg_id}")
 async def switch_registry(reg_id: str, token: str = Depends(get_auth_token)):
-    """Switches active registry context."""
     global active_registry_id
     if reg_id not in connected_registries:
         raise HTTPException(status_code=404, detail="Registry not found")
@@ -191,11 +228,12 @@ async def switch_registry(reg_id: str, token: str = Depends(get_auth_token)):
 @app.get("/api/keys")
 async def list_keys(token: str = Depends(get_auth_token)):
     client = get_zot_client()
+    effective_token = get_effective_token(token)
     try:
-        keys = await client.list_keys(token)
+        keys = await client.list_keys(effective_token)
         return {"apiKeys": keys}
     except PermissionError:
-        raise HTTPException(status_code=401, detail="Invalid session credentials")
+        raise HTTPException(status_code=401, detail="Invalid credentials for active registry")
     except Exception as e:
         logger.error(f"Error fetching keys: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -203,9 +241,10 @@ async def list_keys(token: str = Depends(get_auth_token)):
 @app.post("/api/keys")
 async def create_key(req: CreateKeyRequest, token: str = Depends(get_auth_token)):
     client = get_zot_client()
+    effective_token = get_effective_token(token)
     try:
         result = await client.create_key(
-            auth_token=token,
+            auth_token=effective_token,
             label=req.label,
             scopes=req.scopes,
             expiration_date=req.expirationDate
@@ -222,8 +261,9 @@ async def create_key(req: CreateKeyRequest, token: str = Depends(get_auth_token)
 @app.delete("/api/keys/{key_uuid}")
 async def revoke_key(key_uuid: str, token: str = Depends(get_auth_token)):
     client = get_zot_client()
+    effective_token = get_effective_token(token)
     try:
-        success = await client.revoke_key(token, key_uuid)
+        success = await client.revoke_key(effective_token, key_uuid)
         if success:
             audit.log("KEY_REVOKE", f"Revoked API key UUID '{key_uuid[:13]}...'")
             return {"status": "revoked", "uuid": key_uuid}
@@ -236,8 +276,9 @@ async def revoke_key(key_uuid: str, token: str = Depends(get_auth_token)):
 @app.get("/api/repositories")
 async def list_repositories(token: str = Depends(get_auth_token)):
     client = get_zot_client()
+    effective_token = get_effective_token(token)
     try:
-        repos = await client.list_repositories(token)
+        repos = await client.list_repositories(effective_token)
         return {"repositories": repos}
     except Exception as e:
         logger.error(f"Error fetching repositories: {e}")
@@ -246,7 +287,8 @@ async def list_repositories(token: str = Depends(get_auth_token)):
 @app.get("/api/repositories/{repo:path}/tags/{tag}")
 async def get_tag_info(repo: str, tag: str, token: str = Depends(get_auth_token)):
     client = get_zot_client()
-    details = await client.get_tag_manifest(token, repo, tag)
+    effective_token = get_effective_token(token)
+    details = await client.get_tag_manifest(effective_token, repo, tag)
     if not details:
         raise HTTPException(status_code=404, detail="Tag not found")
     return details
@@ -254,7 +296,8 @@ async def get_tag_info(repo: str, tag: str, token: str = Depends(get_auth_token)
 @app.delete("/api/repositories/{repo:path}/tags/{tag}")
 async def delete_image_tag(repo: str, tag: str, token: str = Depends(get_auth_token)):
     client = get_zot_client()
-    success = await client.delete_tag(token, repo, tag)
+    effective_token = get_effective_token(token)
+    success = await client.delete_tag(effective_token, repo, tag)
     if success:
         audit.log("TAG_DELETE", f"Deleted tag '{repo}:{tag}'")
         return {"status": "deleted", "repo": repo, "tag": tag}
@@ -262,17 +305,15 @@ async def delete_image_tag(repo: str, tag: str, token: str = Depends(get_auth_to
 
 @app.get("/api/storage")
 async def storage_summary(token: str = Depends(get_auth_token)):
-    """Returns storage utilization and layer statistics."""
     client = get_zot_client()
-    return await client.get_storage_summary(token)
+    effective_token = get_effective_token(token)
+    return await client.get_storage_summary(effective_token)
 
 @app.get("/api/audit-log")
 async def get_audit_log(token: str = Depends(get_auth_token)):
-    """Returns recent registry management activity."""
     return {"events": audit.get_events()}
 
 @app.post("/api/maintenance/prune")
 async def prune_garbage(token: str = Depends(get_auth_token)):
-    """Triggers maintenance check for untagged image blobs."""
     audit.log("MAINTENANCE", "Triggered registry garbage collection sweep")
     return {"status": "completed", "message": "Garbage collection check completed successfully."}
