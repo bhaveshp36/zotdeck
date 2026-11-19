@@ -6,21 +6,30 @@ import httpx
 
 logger = logging.getLogger("zotdeck.client")
 
+def format_bytes(size_bytes: int) -> str:
+    """Formats bytes into human readable format."""
+    if size_bytes == 0:
+        return "0 B"
+    units = ["B", "KB", "MB", "GB", "TB"]
+    i = 0
+    size = float(size_bytes)
+    while size >= 1024.0 and i < len(units) - 1:
+        size /= 1024.0
+        i += 1
+    return f"{size:.2f} {units[i]}"
+
 class ZotClient:
-    def __init__(self, base_url: Optional[str] = None):
-        # Default to internal container network URL or localhost
+    def __init__(self, base_url: Optional[str] = None, public_url: Optional[str] = None):
         self.base_url = (base_url or os.getenv("ZOT_ENDPOINT", "http://zot-registry:5000")).rstrip("/")
-        self.public_url = os.getenv("ZOT_PUBLIC_DOMAIN", "registry.mokshlabs.ai").rstrip("/")
+        self.public_url = (public_url or os.getenv("ZOT_PUBLIC_DOMAIN", "registry.mokshlabs.ai")).rstrip("/")
 
     def _get_auth_header(self, auth_token: str) -> Dict[str, str]:
-        """Accepts either a pre-encoded Basic token or username:password string."""
         if ":" in auth_token:
             encoded = base64.b64encode(auth_token.encode()).decode()
             return {"Authorization": f"Basic {encoded}"}
         return {"Authorization": f"Basic {auth_token}"}
 
     async def verify_credentials(self, auth_token: str) -> bool:
-        """Pings /v2/ to test if credentials are valid."""
         headers = self._get_auth_header(auth_token)
         async with httpx.AsyncClient(timeout=10.0) as client:
             try:
@@ -31,7 +40,6 @@ class ZotClient:
                 return False
 
     async def list_keys(self, auth_token: str) -> List[Dict[str, Any]]:
-        """Lists active API keys from Zot."""
         headers = self._get_auth_header(auth_token)
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.get(f"{self.base_url}/zot/auth/apikey", headers=headers)
@@ -51,7 +59,6 @@ class ZotClient:
         scopes: Optional[List[str]] = None,
         expiration_date: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Issues a new API key."""
         headers = self._get_auth_header(auth_token)
         headers["Content-Type"] = "application/json"
         payload: Dict[str, Any] = {"label": label}
@@ -70,7 +77,6 @@ class ZotClient:
                 raise RuntimeError(f"Zot API error ({resp.status_code}): {resp.text}")
 
     async def revoke_key(self, auth_token: str, key_uuid: str) -> bool:
-        """Revokes an API key by its UUID."""
         headers = self._get_auth_header(auth_token)
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.delete(f"{self.base_url}/zot/auth/apikey?id={key_uuid}", headers=headers)
@@ -81,7 +87,6 @@ class ZotClient:
             return False
 
     async def list_repositories(self, auth_token: str) -> List[Dict[str, Any]]:
-        """Lists all repositories and their tags."""
         headers = self._get_auth_header(auth_token)
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.get(f"{self.base_url}/v2/_catalog", headers=headers)
@@ -107,7 +112,7 @@ class ZotClient:
             return repo_list
 
     async def get_tag_manifest(self, auth_token: str, repo: str, tag: str) -> Dict[str, Any]:
-        """Fetches manifest details for a tag."""
+        """Fetches detailed manifest, layer breakdowns, and image configuration."""
         headers = self._get_auth_header(auth_token)
         headers["Accept"] = (
             "application/vnd.docker.distribution.manifest.v2+json, "
@@ -122,22 +127,94 @@ class ZotClient:
 
             digest = resp.headers.get("Docker-Content-Digest") or resp.headers.get("ETag", "").strip('"')
             manifest = resp.json()
-            layers = manifest.get("layers", [])
-            total_size = sum(l.get("size", 0) for l in layers)
+            raw_layers = manifest.get("layers", [])
+            total_size = sum(l.get("size", 0) for l in raw_layers)
+
+            formatted_layers = []
+            for idx, l in enumerate(raw_layers):
+                l_size = l.get("size", 0)
+                formatted_layers.append({
+                    "index": idx + 1,
+                    "digest": l.get("digest", "")[:19] + "...",
+                    "full_digest": l.get("digest", ""),
+                    "size_bytes": l_size,
+                    "formatted_size": format_bytes(l_size),
+                    "media_type": l.get("mediaType", "")
+                })
+
+            # Fetch Config blob if present for architecture, OS, and history
+            config_desc = manifest.get("config", {})
+            config_digest = config_desc.get("digest")
+            arch = "unknown"
+            os_name = "linux"
+            created_at = None
+            history_commands = []
+
+            if config_digest:
+                try:
+                    blob_resp = await client.get(f"{self.base_url}/v2/{repo}/blobs/{config_digest}", headers=headers)
+                    if blob_resp.status_code == 200:
+                        cfg_json = blob_resp.json()
+                        arch = cfg_json.get("architecture", arch)
+                        os_name = cfg_json.get("os", os_name)
+                        created_at = cfg_json.get("created")
+                        for h in cfg_json.get("history", []):
+                            cmd = h.get("created_by", "")
+                            if cmd:
+                                history_commands.append(cmd)
+                except Exception as e:
+                    logger.debug(f"Could not load config blob {config_digest}: {e}")
 
             return {
+                "repo": repo,
+                "tag": tag,
                 "digest": digest,
+                "short_digest": digest[:19] + "..." if digest else "",
                 "schemaVersion": manifest.get("schemaVersion"),
                 "mediaType": manifest.get("mediaType"),
+                "architecture": arch,
+                "os": os_name,
+                "created_at": created_at,
                 "size_bytes": total_size,
-                "layer_count": len(layers),
+                "formatted_size": format_bytes(total_size),
+                "layer_count": len(raw_layers),
+                "layers": formatted_layers,
+                "history": history_commands[:15],
+                "pull_command": f"docker pull {self.public_url}/{repo}:{tag}"
             }
 
+    async def get_storage_summary(self, auth_token: str) -> Dict[str, Any]:
+        """Calculates total registry image footprint and layer deduplication statistics."""
+        repos = await self.list_repositories(auth_token)
+        total_tags = 0
+        unique_layer_digests = {}
+
+        for r in repos:
+            repo_name = r["name"]
+            total_tags += len(r.get("tags", []))
+            for tag in r.get("tags", [])[:10]: # Sample tags
+                try:
+                    info = await self.get_tag_manifest(auth_token, repo_name, tag)
+                    for l in info.get("layers", []):
+                        f_digest = l.get("full_digest")
+                        if f_digest and f_digest not in unique_layer_digests:
+                            unique_layer_digests[f_digest] = l.get("size_bytes", 0)
+                except Exception:
+                    continue
+
+        total_bytes = sum(unique_layer_digests.values())
+
+        return {
+            "total_repositories": len(repos),
+            "total_tags": total_tags,
+            "unique_layers": len(unique_layer_digests),
+            "total_bytes": total_bytes,
+            "formatted_size": format_bytes(total_bytes)
+        }
+
     async def delete_tag(self, auth_token: str, repo: str, tag_or_digest: str) -> bool:
-        """Deletes a manifest by tag or digest."""
         digest = tag_or_digest
         if not tag_or_digest.startswith("sha256:"):
-            # Resolve tag to digest first
             details = await self.get_tag_manifest(auth_token, repo, tag_or_digest)
             digest = details.get("digest")
             if not digest:

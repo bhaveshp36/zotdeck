@@ -88,35 +88,81 @@
         <div>
           <div class="flex items-center space-x-2">
             <span class="font-bold text-base tracking-tight text-slate-900 dark:text-white">ZotDeck</span>
-            <span class="text-[10px] bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-semibold px-2 py-0.5 rounded-full border border-indigo-500/30">v1.1.0</span>
+            <span class="text-[10px] bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-semibold px-2 py-0.5 rounded-full border border-indigo-500/30">v1.2.0</span>
           </div>
-          <p class="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[140px] sm:max-w-xs" x-text="registryHost"></p>
+          <!-- Registry Switcher Dropdown -->
+          <div class="relative" x-data="{ openRegDropdown: false }">
+            <button @click="openRegDropdown = !openRegDropdown"
+                    class="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 flex items-center space-x-1 transition">
+              <span class="truncate max-w-[130px] sm:max-w-xs" x-text="activeRegistryName"></span>
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
+            </button>
+
+            <!-- Dropdown Menu -->
+            <div x-show="openRegDropdown" @click.away="openRegDropdown = false"
+                 class="absolute left-0 mt-1 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl py-2 z-50 text-xs">
+              <div class="px-3 py-1 font-semibold text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-100 dark:border-slate-800 mb-1">
+                Connected Registries
+              </div>
+              <template x-for="reg in registries" :key="reg.id">
+                <button @click="switchRegistry(reg.id); openRegDropdown = false"
+                        class="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-between">
+                  <div>
+                    <div class="font-medium text-slate-800 dark:text-slate-200" x-text="reg.name"></div>
+                    <div class="text-[10px] text-slate-400 font-mono truncate" x-text="reg.public_domain"></div>
+                  </div>
+                  <span x-show="activeRegistryId === reg.id" class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                </button>
+              </template>
+              <div class="border-t border-slate-100 dark:border-slate-800 mt-1 pt-1 px-2">
+                <button @click="openAddRegistryModal = true; openRegDropdown = false"
+                        class="w-full py-1.5 px-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-lg text-left flex items-center space-x-1.5 font-medium">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  <span>Connect Remote Zot...</span>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- Navigation Tabs (Desktop) -->
-      <nav class="hidden md:flex space-x-1">
+      <nav class="hidden lg:flex space-x-1">
         <button @click="currentTab = 'keys'"
                 :class="currentTab === 'keys' ? 'bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-slate-200 dark:border-slate-700' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'"
-                class="px-3.5 py-2 rounded-lg text-xs font-medium transition flex items-center space-x-2">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"/><path stroke-linecap="round" stroke-linejoin="round" d="m21 2-9.6 9.6m0 0v3h3v3h3v-3h3v-3"/></svg>
-          <span>API Credentials</span>
+                class="px-3 py-2 rounded-lg text-xs font-medium transition flex items-center space-x-1.5">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"/><path stroke-linecap="round" stroke-linejoin="round" d="m21 2-9.6 9.6m0 0v3h3v3h3v-3h3v-3"/></svg>
+          <span>Credentials</span>
           <span class="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-[10px] px-1.5 py-0.5 rounded-full font-mono" x-text="keys.length"></span>
         </button>
 
         <button @click="currentTab = 'repos'"
                 :class="currentTab === 'repos' ? 'bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-slate-200 dark:border-slate-700' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'"
-                class="px-3.5 py-2 rounded-lg text-xs font-medium transition flex items-center space-x-2">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path stroke-linecap="round" stroke-linejoin="round" d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg>
+                class="px-3 py-2 rounded-lg text-xs font-medium transition flex items-center space-x-1.5">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path stroke-linecap="round" stroke-linejoin="round" d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg>
           <span>Repositories</span>
           <span class="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-[10px] px-1.5 py-0.5 rounded-full font-mono" x-text="repositories.length"></span>
         </button>
 
+        <button @click="currentTab = 'storage'; loadStorage()"
+                :class="currentTab === 'storage' ? 'bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-slate-200 dark:border-slate-700' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'"
+                class="px-3 py-2 rounded-lg text-xs font-medium transition flex items-center space-x-1.5">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9"/></svg>
+          <span>Storage</span>
+        </button>
+
+        <button @click="currentTab = 'audit'; loadAuditLog()"
+                :class="currentTab === 'audit' ? 'bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-slate-200 dark:border-slate-700' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'"
+                class="px-3 py-2 rounded-lg text-xs font-medium transition flex items-center space-x-1.5">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>
+          <span>Activity Log</span>
+        </button>
+
         <button @click="currentTab = 'quickstart'"
                 :class="currentTab === 'quickstart' ? 'bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-slate-200 dark:border-slate-700' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'"
-                class="px-3.5 py-2 rounded-lg text-xs font-medium transition flex items-center space-x-2">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
-          <span>Quickstart</span>
+                class="px-3 py-2 rounded-lg text-xs font-medium transition flex items-center space-x-1.5">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+          <span>Snippets</span>
         </button>
       </nav>
 
@@ -133,11 +179,6 @@
           </span>
         </button>
 
-        <div class="hidden lg:flex items-center space-x-2 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full text-emerald-600 dark:text-emerald-400 text-xs">
-          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span>Zot Connected</span>
-        </div>
-
         <div class="flex items-center space-x-2 pl-2 border-l border-slate-200 dark:border-slate-800">
           <span class="text-xs text-slate-600 dark:text-slate-300 font-medium hidden sm:inline" x-text="currentUser"></span>
           <button @click="logout" title="Sign out"
@@ -150,24 +191,31 @@
   </header>
 
   <!-- Mobile Tab Navigation -->
-  <div class="md:hidden bg-white/90 dark:bg-slate-900/90 border-b border-slate-200 dark:border-slate-800 px-4 py-2 sticky top-16 z-30 flex space-x-2 overflow-x-auto">
+  <div class="lg:hidden bg-white/90 dark:bg-slate-900/90 border-b border-slate-200 dark:border-slate-800 px-4 py-2 sticky top-16 z-30 flex space-x-2 overflow-x-auto">
     <button @click="currentTab = 'keys'"
             :class="currentTab === 'keys' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'"
-            class="px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition flex items-center space-x-1.5">
-      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"/><path stroke-linecap="round" stroke-linejoin="round" d="m21 2-9.6 9.6m0 0v3h3v3h3v-3h3v-3"/></svg>
-      <span>API Keys (<span x-text="keys.length"></span>)</span>
+            class="px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition">
+      Credentials (<span x-text="keys.length"></span>)
     </button>
     <button @click="currentTab = 'repos'"
             :class="currentTab === 'repos' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'"
-            class="px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition flex items-center space-x-1.5">
-      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path stroke-linecap="round" stroke-linejoin="round" d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg>
-      <span>Repositories (<span x-text="repositories.length"></span>)</span>
+            class="px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition">
+      Repositories (<span x-text="repositories.length"></span>)
+    </button>
+    <button @click="currentTab = 'storage'; loadStorage()"
+            :class="currentTab === 'storage' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'"
+            class="px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition">
+      Storage
+    </button>
+    <button @click="currentTab = 'audit'; loadAuditLog()"
+            :class="currentTab === 'audit' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'"
+            class="px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition">
+      Activity Log
     </button>
     <button @click="currentTab = 'quickstart'"
             :class="currentTab === 'quickstart' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'"
-            class="px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition flex items-center space-x-1.5">
-      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
-      <span>Quickstart</span>
+            class="px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition">
+      Snippets
     </button>
   </div>
 
@@ -176,7 +224,6 @@
 
     <!-- TAB 1: API KEYS & CREDENTIALS -->
     <div x-show="currentTab === 'keys'" class="space-y-6">
-      <!-- Section Header -->
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
         <div>
           <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center space-x-2">
@@ -235,10 +282,10 @@
                       Pull Only
                     </span>
                   </td>
-                  <td class="py-3 px-4 text-slate-500 dark:text-slate-400 whitespace-nowrap" x-text="formatDate(k.createdAt)"></td>
+                  <td class="py-3 px-4 text-slate-500 dark:text-slate-400 whitespace-nowrap" x-text="k.createdAt ? k.createdAt.slice(0, 19).replace('T', ' ') : '—'"></td>
                   <td class="py-3 px-4 whitespace-nowrap">
-                    <span x-show="k.lastUsed && k.lastUsed !== '0001-01-01T00:00:00Z'" class="text-slate-700 dark:text-slate-300" x-text="formatDate(k.lastUsed)"></span>
-                    <span x-show="!k.lastUsed || k.lastUsed === '0001-01-01T00:00:00Z'" class="text-slate-400 italic">Never</span>
+                    <span x-show="k.lastUsed && !k.lastUsed.startsWith('0001')" class="text-slate-700 dark:text-slate-300" x-text="k.lastUsed.slice(0, 19).replace('T', ' ')"></span>
+                    <span x-show="!k.lastUsed || k.lastUsed.startsWith('0001')" class="text-slate-400 italic">Never</span>
                   </td>
                   <td class="py-3 px-4 text-slate-400 text-[11px] whitespace-nowrap" x-text="k.uuid.slice(0, 13) + '...'"></td>
                   <td class="py-3 px-4 text-right whitespace-nowrap">
@@ -265,7 +312,7 @@
       <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shadow-sm">
         <div>
           <h2 class="text-lg font-bold text-slate-900 dark:text-white">Container Image Catalog</h2>
-          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Explore stored OCI images, inspect tags, and clean up unneeded manifests.</p>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Explore stored OCI images, inspect layer breakdown, and clean up manifests.</p>
         </div>
         <div class="flex items-center space-x-3">
           <div class="relative w-full sm:w-64">
@@ -303,13 +350,16 @@
 
             <!-- Tags List -->
             <div class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-lg p-3">
-              <div class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Available Tags</div>
+              <div class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Available Tags (Click tag to inspect layers)</div>
               <div class="flex flex-wrap gap-2">
                 <template x-for="tag in r.tags" :key="tag">
-                  <div class="flex items-center space-x-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-1 rounded-lg text-xs font-mono text-slate-700 dark:text-slate-300 shadow-sm">
-                    <span x-text="tag"></span>
+                  <div class="flex items-center space-x-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 pl-3 pr-2 py-1 rounded-lg text-xs font-mono text-slate-700 dark:text-slate-300 shadow-sm">
+                    <button @click="inspectTag(r.name, tag)" class="hover:text-indigo-600 dark:hover:text-indigo-400 font-medium flex items-center space-x-1" title="Inspect image layers">
+                      <span x-text="tag"></span>
+                      <svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                    </button>
                     <button @click="confirmDeleteTag(r.name, tag)" title="Delete tag"
-                            class="text-slate-400 hover:text-red-500 transition ml-1">
+                            class="text-slate-400 hover:text-red-500 transition ml-1 p-0.5 rounded">
                       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2m-6 5v6m4-6v6"/></svg>
                     </button>
                   </div>
@@ -324,99 +374,362 @@
           <svg class="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path stroke-linecap="round" stroke-linejoin="round" d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg>
           <h3 class="text-sm font-semibold text-slate-900 dark:text-white">No Container Images Found</h3>
           <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto">
-            Push an image to this registry using the Docker CLI to see it appear here.
+            Push an image to this registry using Docker or Podman to see it appear here.
           </p>
         </div>
       </div>
     </div>
 
-    <!-- TAB 3: QUICKSTART GUIDE -->
-    <div x-show="currentTab === 'quickstart'" class="space-y-6">
+    <!-- TAB 3: STORAGE & HEALTH -->
+    <div x-show="currentTab === 'storage'" class="space-y-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+          <div class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Image Storage Footprint</div>
+          <div class="text-2xl font-bold text-slate-900 dark:text-white" x-text="storageStats.formatted_size || '0 B'"></div>
+          <div class="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1">Deduplicated across tags</div>
+        </div>
+
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+          <div class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Total Repositories</div>
+          <div class="text-2xl font-bold text-slate-900 dark:text-white" x-text="storageStats.total_repositories || 0"></div>
+          <div class="text-[11px] text-slate-400 mt-1" x-text="(storageStats.total_tags || 0) + ' total tags'"></div>
+        </div>
+
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+          <div class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Unique Layer Blobs</div>
+          <div class="text-2xl font-bold text-slate-900 dark:text-white" x-text="storageStats.unique_layers || 0"></div>
+          <div class="text-[11px] text-indigo-500 mt-1">Shared content-addressable storage</div>
+        </div>
+
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+          <div class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Registry Mode</div>
+          <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">100% Private</div>
+          <div class="text-[11px] text-slate-400 mt-1">Anonymous requests blocked</div>
+        </div>
+      </div>
+
+      <!-- Maintenance / Pruning Box -->
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h3 class="text-base font-bold text-slate-900 dark:text-white">Registry Garbage Collection Sweep</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xl">
+            When you delete tags or overwrite builds, unused layers become unreferenced. Run a garbage collection check to verify dangling manifests and reclaim host disk storage.
+          </p>
+        </div>
+        <button @click="triggerPrune" :disabled="pruning"
+                class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-medium transition shadow-md shrink-0 flex items-center space-x-2 disabled:opacity-50">
+          <svg class="w-4 h-4" :class="pruning ? 'animate-spin' : ''" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          <span x-text="pruning ? 'Checking...' : 'Run Garbage Collection'"></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- TAB 4: ACTIVITY & AUDIT LOG -->
+    <div x-show="currentTab === 'audit'" class="space-y-6">
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex items-center justify-between shadow-sm">
+        <div>
+          <h2 class="text-lg font-bold text-slate-900 dark:text-white">Audit & Activity Log</h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Real-time log of API key issuances, revocations, user authentications, and image deletions.</p>
+        </div>
+        <button @click="loadAuditLog" class="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition" title="Refresh">
+          <svg class="w-4 h-4" :class="loadingAudit ? 'animate-spin' : ''" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+        </button>
+      </div>
+
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-700 dark:text-slate-300">
+            <thead class="bg-slate-50 dark:bg-slate-950/50 text-slate-500 dark:text-slate-400 uppercase font-semibold border-b border-slate-200 dark:border-slate-800 whitespace-nowrap">
+              <tr>
+                <th class="py-3 px-4">Timestamp</th>
+                <th class="py-3 px-4">Event Type</th>
+                <th class="py-3 px-4">Actor</th>
+                <th class="py-3 px-4">Details</th>
+                <th class="py-3 px-4 text-right">Status</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60 font-mono">
+              <template x-for="event in auditLogs" :key="event.id">
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
+                  <td class="py-3 px-4 text-slate-400 whitespace-nowrap" x-text="event.timestamp"></td>
+                  <td class="py-3 px-4 whitespace-nowrap">
+                    <span :class="{
+                      'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20': event.type === 'KEY_CREATE',
+                      'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20': event.type === 'KEY_REVOKE' || event.type === 'TAG_DELETE',
+                      'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20': event.type === 'AUTH',
+                      'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20': event.type === 'REGISTRY_CONNECT' || event.type === 'REGISTRY_SWITCH',
+                    }" class="px-2 py-0.5 rounded text-[10px] font-sans" x-text="event.type"></span>
+                  </td>
+                  <td class="py-3 px-4 font-sans text-slate-800 dark:text-slate-200" x-text="event.user"></td>
+                  <td class="py-3 px-4 font-sans text-slate-700 dark:text-slate-300" x-text="event.message"></td>
+                  <td class="py-3 px-4 text-right whitespace-nowrap">
+                    <span class="text-emerald-500 font-sans" x-show="event.status === 'success'">Success</span>
+                    <span class="text-red-500 font-sans" x-show="event.status !== 'success'">Failed</span>
+                  </td>
+                </tr>
+              </template>
+              <tr x-show="auditLogs.length === 0">
+                <td colspan="5" class="py-8 text-center text-slate-400 font-sans">
+                  No activity recorded yet in this session.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 5: QUICKSTART & SNIPPETS -->
+    <div x-show="currentTab === 'quickstart'" class="space-y-6" x-data="{ snippetTab: 'docker' }">
       <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 sm:p-6 shadow-sm">
-        <h2 class="text-base font-bold text-slate-900 dark:text-white mb-1">Tool Integration Guide</h2>
-        <p class="text-xs text-slate-500 dark:text-slate-400 mb-6">Ready-to-use snippets to authenticate your preferred runtime or CI/CD platform.</p>
+        <h2 class="text-base font-bold text-slate-900 dark:text-white mb-1">Multi-Platform Code Generator</h2>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mb-6">Ready-to-use snippets to authenticate and push/pull from any container engine or CI/CD platform.</p>
 
-        <div class="space-y-6">
-          <!-- 1. Docker CLI -->
-          <div>
-            <div class="flex items-center justify-between mb-2">
-              <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">1. Docker CLI</h3>
-              <button @click="copyText('echo &quot;<YOUR_API_KEY>&quot; | docker login ' + registryHost + ' -u admin --password-stdin')"
-                      class="text-[11px] text-slate-500 hover:text-indigo-500 flex items-center space-x-1">
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-                <span>Copy</span>
-              </button>
-            </div>
-            <div class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-3 font-mono text-xs text-slate-800 dark:text-slate-300 overflow-x-auto">
-              <pre><code>echo "&lt;YOUR_API_KEY&gt;" | docker login <span x-text="registryHost"></span> -u admin --password-stdin</code></pre>
-            </div>
+        <!-- Platform Sub-Tabs -->
+        <div class="flex flex-wrap gap-2 mb-6 border-b border-slate-200 dark:border-slate-800 pb-3">
+          <button @click="snippetTab = 'docker'"
+                  :class="snippetTab === 'docker' ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'"
+                  class="px-3 py-1.5 rounded-lg text-xs font-medium transition">Docker CLI</button>
+          <button @click="snippetTab = 'podman'"
+                  :class="snippetTab === 'podman' ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'"
+                  class="px-3 py-1.5 rounded-lg text-xs font-medium transition">Podman</button>
+          <button @click="snippetTab = 'k8s'"
+                  :class="snippetTab === 'k8s' ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'"
+                  class="px-3 py-1.5 rounded-lg text-xs font-medium transition">Kubernetes</button>
+          <button @click="snippetTab = 'helm'"
+                  :class="snippetTab === 'helm' ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'"
+                  class="px-3 py-1.5 rounded-lg text-xs font-medium transition">Helm OCI</button>
+          <button @click="snippetTab = 'github'"
+                  :class="snippetTab === 'github' ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'"
+                  class="px-3 py-1.5 rounded-lg text-xs font-medium transition">GitHub Actions</button>
+          <button @click="snippetTab = 'gitlab'"
+                  :class="snippetTab === 'gitlab' ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'"
+                  class="px-3 py-1.5 rounded-lg text-xs font-medium transition">GitLab CI</button>
+        </div>
+
+        <!-- 1. Docker CLI -->
+        <div x-show="snippetTab === 'docker'" class="space-y-4">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Authenticate & Push</span>
+            <button @click="copyText('echo &quot;<YOUR_API_KEY>&quot; | docker login ' + registryHost + ' -u admin --password-stdin\ndocker tag my-app:latest ' + registryHost + '/my-app:latest\ndocker push ' + registryHost + '/my-app:latest')"
+                    class="text-[11px] text-slate-500 hover:text-indigo-500 flex items-center space-x-1">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+              <span>Copy</span>
+            </button>
           </div>
+          <div class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-3.5 font-mono text-xs text-slate-800 dark:text-slate-300 overflow-x-auto">
+            <pre><code># 1. Login with API key
+echo "&lt;YOUR_API_KEY&gt;" | docker login <span x-text="registryHost"></span> -u admin --password-stdin
 
-          <!-- 2. Tag & Push -->
-          <div>
-            <div class="flex items-center justify-between mb-2">
-              <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">2. Tag & Push an Image</h3>
-              <button @click="copyText('docker tag my-app:latest ' + registryHost + '/my-app:latest\ndocker push ' + registryHost + '/my-app:latest')"
-                      class="text-[11px] text-slate-500 hover:text-indigo-500 flex items-center space-x-1">
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-                <span>Copy</span>
-              </button>
-            </div>
-            <div class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-3 font-mono text-xs text-slate-800 dark:text-slate-300 overflow-x-auto">
-              <pre><code>docker tag my-app:latest <span x-text="registryHost"></span>/my-app:latest
+# 2. Tag image
+docker tag my-app:latest <span x-text="registryHost"></span>/my-app:latest
+
+# 3. Push image
 docker push <span x-text="registryHost"></span>/my-app:latest</code></pre>
-            </div>
           </div>
+        </div>
 
-          <!-- 3. Podman CLI -->
-          <div>
-            <div class="flex items-center justify-between mb-2">
-              <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">3. Podman CLI</h3>
-              <button @click="copyText('podman login ' + registryHost + ' -u admin --password &quot;<YOUR_API_KEY>&quot;')"
-                      class="text-[11px] text-slate-500 hover:text-indigo-500 flex items-center space-x-1">
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-                <span>Copy</span>
-              </button>
-            </div>
-            <div class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-3 font-mono text-xs text-slate-800 dark:text-slate-300 overflow-x-auto">
-              <pre><code>podman login <span x-text="registryHost"></span> -u admin --password "&lt;YOUR_API_KEY&gt;"</code></pre>
-            </div>
+        <!-- 2. Podman -->
+        <div x-show="snippetTab === 'podman'" class="space-y-4">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Podman Login & Push</span>
+            <button @click="copyText('podman login ' + registryHost + ' -u admin --password &quot;<YOUR_API_KEY>&quot;\npodman push my-app:latest ' + registryHost + '/my-app:latest')"
+                    class="text-[11px] text-slate-500 hover:text-indigo-500 flex items-center space-x-1">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+              <span>Copy</span>
+            </button>
           </div>
+          <div class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-3.5 font-mono text-xs text-slate-800 dark:text-slate-300 overflow-x-auto">
+            <pre><code>podman login <span x-text="registryHost"></span> -u admin --password "&lt;YOUR_API_KEY&gt;"
+podman tag my-app:latest <span x-text="registryHost"></span>/my-app:latest
+podman push <span x-text="registryHost"></span>/my-app:latest</code></pre>
+          </div>
+        </div>
 
-          <!-- 4. Kubernetes Secret -->
-          <div>
-            <div class="flex items-center justify-between mb-2">
-              <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">4. Kubernetes Secret</h3>
-              <button @click="copyText('kubectl create secret docker-registry zot-regcred --docker-server=' + registryHost + ' --docker-username=admin --docker-password=<YOUR_API_KEY>')"
-                      class="text-[11px] text-slate-500 hover:text-indigo-500 flex items-center space-x-1">
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-                <span>Copy</span>
-              </button>
-            </div>
-            <div class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-3 font-mono text-xs text-slate-800 dark:text-slate-300 overflow-x-auto">
-              <pre><code>kubectl create secret docker-registry zot-regcred \
+        <!-- 3. Kubernetes -->
+        <div x-show="snippetTab === 'k8s'" class="space-y-4">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Kubernetes imagePullSecrets</span>
+            <button @click="copyText('kubectl create secret docker-registry zot-regcred --docker-server=' + registryHost + ' --docker-username=admin --docker-password=<YOUR_API_KEY>')"
+                    class="text-[11px] text-slate-500 hover:text-indigo-500 flex items-center space-x-1">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+              <span>Copy</span>
+            </button>
+          </div>
+          <div class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-3.5 font-mono text-xs text-slate-800 dark:text-slate-300 overflow-x-auto">
+            <pre><code># Create secret
+kubectl create secret docker-registry zot-regcred \
   --docker-server=<span x-text="registryHost"></span> \
   --docker-username=admin \
-  --docker-password="&lt;YOUR_API_KEY&gt;"</code></pre>
-            </div>
-          </div>
+  --docker-password="&lt;YOUR_API_KEY&gt;"
 
-          <!-- 5. GitHub Actions -->
-          <div>
-            <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-2">5. GitHub Actions Workflow</h3>
-            <div class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-3 font-mono text-xs text-slate-800 dark:text-slate-300 overflow-x-auto">
-              <pre><code>- name: Login to Private Registry
+# Reference in pod manifest:
+spec:
+  imagePullSecrets:
+    - name: zot-regcred
+  containers:
+    - name: app
+      image: <span x-text="registryHost"></span>/my-app:latest</code></pre>
+          </div>
+        </div>
+
+        <!-- 4. Helm OCI -->
+        <div x-show="snippetTab === 'helm'" class="space-y-4">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Push Helm Chart as OCI Artifact</span>
+            <button @click="copyText('helm registry login ' + registryHost + ' -u admin --password &quot;<YOUR_API_KEY>&quot;\nhelm package ./my-chart\nhelm push my-chart-0.1.0.tgz oci://' + registryHost + '/charts')"
+                    class="text-[11px] text-slate-500 hover:text-indigo-500 flex items-center space-x-1">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+              <span>Copy</span>
+            </button>
+          </div>
+          <div class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-3.5 font-mono text-xs text-slate-800 dark:text-slate-300 overflow-x-auto">
+            <pre><code># 1. Login Helm to Zot OCI
+helm registry login <span x-text="registryHost"></span> -u admin --password "&lt;YOUR_API_KEY&gt;"
+
+# 2. Package & Push Helm Chart
+helm package ./my-chart
+helm push my-chart-0.1.0.tgz oci://<span x-text="registryHost"></span>/charts</code></pre>
+          </div>
+        </div>
+
+        <!-- 5. GitHub Actions -->
+        <div x-show="snippetTab === 'github'" class="space-y-4">
+          <div class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-3.5 font-mono text-xs text-slate-800 dark:text-slate-300 overflow-x-auto">
+            <pre><code>- name: Log in to Private Zot Registry
   uses: docker/login-action@v3
   with:
     registry: <span x-text="registryHost"></span>
     username: admin
-    password: {% raw %}${{ secrets.REGISTRY_API_KEY }}{% endraw %}</code></pre>
-            </div>
+    password: {% raw %}${{ secrets.ZOT_API_KEY }}{% endraw %}
+
+- name: Build and Push
+  uses: docker/build-push-action@v5
+  with:
+    push: true
+    tags: <span x-text="registryHost"></span>/my-service:{% raw %}${{ github.sha }}{% endraw %}</code></pre>
+          </div>
+        </div>
+
+        <!-- 6. GitLab CI -->
+        <div x-show="snippetTab === 'gitlab'" class="space-y-4">
+          <div class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-3.5 font-mono text-xs text-slate-800 dark:text-slate-300 overflow-x-auto">
+            <pre><code>before_script:
+  - echo "$ZOT_API_KEY" | docker login <span x-text="registryHost"></span> -u admin --password-stdin
+
+build_image:
+  script:
+    - docker build -t <span x-text="registryHost"></span>/my-app:$CI_COMMIT_SHORT_SHA .
+    - docker push <span x-text="registryHost"></span>/my-app:$CI_COMMIT_SHORT_SHA</code></pre>
           </div>
         </div>
       </div>
     </div>
   </main>
+
+  <!-- MODAL: Layer & Build Inspector -->
+  <div x-show="openInspectorModal" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-2xl w-full shadow-2xl relative max-h-[90vh] overflow-y-auto" @click.away="openInspectorModal = false">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 mb-4">
+        <div>
+          <div class="flex items-center space-x-2">
+            <h3 class="text-base font-bold text-slate-900 dark:text-white font-mono" x-text="inspectData.repo + ':' + inspectData.tag"></h3>
+            <span class="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 text-[10px] px-2 py-0.5 rounded font-mono font-semibold"
+                  x-text="(inspectData.os || 'linux') + '/' + (inspectData.architecture || 'amd64')"></span>
+          </div>
+          <p class="text-xs text-slate-400 mt-0.5 font-mono" x-text="inspectData.short_digest"></p>
+        </div>
+        <button @click="openInspectorModal = false" class="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <!-- Stats Bar -->
+      <div class="grid grid-cols-3 gap-3 mb-6 bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
+        <div>
+          <span class="text-slate-400 text-[10px] uppercase font-semibold">Total Size</span>
+          <div class="font-bold text-slate-800 dark:text-slate-100 mt-0.5" x-text="inspectData.formatted_size || '0 B'"></div>
+        </div>
+        <div>
+          <span class="text-slate-400 text-[10px] uppercase font-semibold">Layers</span>
+          <div class="font-bold text-slate-800 dark:text-slate-100 mt-0.5" x-text="(inspectData.layer_count || 0) + ' layers'"></div>
+        </div>
+        <div>
+          <span class="text-slate-400 text-[10px] uppercase font-semibold">Format</span>
+          <div class="font-bold text-slate-800 dark:text-slate-100 mt-0.5" x-text="inspectData.schemaVersion === 2 ? 'Docker v2.2' : 'OCI'"></div>
+        </div>
+      </div>
+
+      <!-- Layers Breakdown -->
+      <div class="space-y-4">
+        <div>
+          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Layer Manifests</h4>
+          <div class="space-y-2">
+            <template x-for="l in (inspectData.layers || [])" :key="l.index">
+              <div class="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-mono">
+                <div class="flex items-center space-x-2">
+                  <span class="text-[10px] bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-1.5 py-0.5 rounded font-sans" x-text="'Layer ' + l.index"></span>
+                  <span class="text-slate-600 dark:text-slate-400 text-[11px]" x-text="l.digest"></span>
+                </div>
+                <span class="font-bold text-slate-800 dark:text-slate-200 font-sans" x-text="l.formatted_size"></span>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- History Commands if available -->
+        <div x-show="inspectData.history && inspectData.history.length > 0">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Build History</h4>
+          <div class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-3 font-mono text-[11px] text-slate-600 dark:text-slate-400 space-y-1 overflow-x-auto max-h-48">
+            <template x-for="h in inspectData.history" :key="h">
+              <div class="truncate hover:text-slate-900 dark:hover:text-slate-200 transition" x-text="h"></div>
+            </template>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Connect Remote Zot -->
+  <div x-show="openAddRegistryModal" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl relative" @click.away="openAddRegistryModal = false">
+      <h3 class="text-base font-bold text-slate-900 dark:text-white mb-1">Connect Remote Zot Registry</h3>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Add another internal or remote Zot instance to manage from ZotDeck.</p>
+
+      <form @submit.prevent="submitAddRegistry">
+        <div class="space-y-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Friendly Name *</label>
+            <input type="text" x-model="newRegForm.name" required placeholder="e.g. Staging Zot, Production Cloud"
+                   class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Backend Endpoint URL *</label>
+            <input type="text" x-model="newRegForm.endpoint" required placeholder="e.g. https://staging-registry.example.com"
+                   class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Public Pull Domain *</label>
+            <input type="text" x-model="newRegForm.public_domain" required placeholder="e.g. staging-registry.example.com"
+                   class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+          </div>
+
+          <div class="flex justify-end space-x-2 pt-2">
+            <button type="button" @click="openAddRegistryModal = false"
+                    class="px-3.5 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs transition">
+              Cancel
+            </button>
+            <button type="submit"
+                    class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs shadow-md transition">
+              Connect Registry
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <!-- MODAL: Issue New Key -->
   <div x-show="openCreateKeyModal" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
@@ -534,19 +847,35 @@ docker push <span x-text="registryHost"></span>/my-app:latest</code></pre>
         loginError: '',
         loginForm: { username: '', password: '' },
 
+        // Registries
+        registries: [],
+        activeRegistryId: 'local',
+        activeRegistryName: 'Local Zot (Default)',
+        openAddRegistryModal: false,
+        newRegForm: { name: '', endpoint: '', public_domain: '' },
+
+        // Keys
         keys: [],
         keySearch: '',
         loadingKeys: false,
         openCreateKeyModal: false,
         creatingKey: false,
         newKeyForm: { label: '', canPush: true, expiry: '' },
-
         openKeySuccessModal: false,
         generatedKeyData: { apiKey: '', label: '' },
 
+        // Repositories & Inspector
         repositories: [],
         repoSearch: '',
         loadingRepos: false,
+        openInspectorModal: false,
+        inspectData: {},
+
+        // Storage & Audit
+        storageStats: {},
+        auditLogs: [],
+        loadingAudit: false,
+        pruning: false,
 
         toast: { visible: false, message: '' },
 
@@ -554,7 +883,7 @@ docker push <span x-text="registryHost"></span>/my-app:latest</code></pre>
           this.applyTheme(this.theme);
           await this.checkAuth();
           if (this.authenticated) {
-            await Promise.all([this.loadKeys(), this.loadRepositories()]);
+            await Promise.all([this.loadRegistries(), this.loadKeys(), this.loadRepositories()]);
           }
         },
 
@@ -605,7 +934,7 @@ docker push <span x-text="registryHost"></span>/my-app:latest</code></pre>
             if (res.ok) {
               this.authenticated = true;
               this.currentUser = this.loginForm.username;
-              await Promise.all([this.loadKeys(), this.loadRepositories()]);
+              await Promise.all([this.loadRegistries(), this.loadKeys(), this.loadRepositories()]);
               this.showToast('Signed in successfully');
             } else {
               this.loginError = 'Invalid username or password';
@@ -622,6 +951,55 @@ docker push <span x-text="registryHost"></span>/my-app:latest</code></pre>
           this.authenticated = false;
           this.keys = [];
           this.repositories = [];
+        },
+
+        async loadRegistries() {
+          try {
+            const res = await fetch('/api/registries');
+            if (res.ok) {
+              const data = await res.json();
+              this.registries = data.registries || [];
+              this.activeRegistryId = data.active_id || 'local';
+              const active = this.registries.find(r => r.id === this.activeRegistryId);
+              if (active) {
+                this.activeRegistryName = active.name;
+                this.registryHost = active.public_domain;
+              }
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        },
+
+        async switchRegistry(regId) {
+          try {
+            const res = await fetch(`/api/registries/switch/${regId}`, { method: 'POST' });
+            if (res.ok) {
+              await this.loadRegistries();
+              await Promise.all([this.loadKeys(), this.loadRepositories()]);
+              this.showToast(`Switched registry to ${this.activeRegistryName}`);
+            }
+          } catch (e) {
+            this.showToast('Failed to switch registry');
+          }
+        },
+
+        async submitAddRegistry() {
+          try {
+            const res = await fetch('/api/registries', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(this.newRegForm)
+            });
+            if (res.ok) {
+              this.openAddRegistryModal = false;
+              this.newRegForm = { name: '', endpoint: '', public_domain: '' };
+              await this.loadRegistries();
+              this.showToast('Remote registry connected successfully');
+            }
+          } catch (e) {
+            this.showToast('Failed to connect remote registry');
+          }
         },
 
         async loadKeys() {
@@ -707,6 +1085,18 @@ docker push <span x-text="registryHost"></span>/my-app:latest</code></pre>
           }
         },
 
+        async inspectTag(repo, tag) {
+          try {
+            const res = await fetch(`/api/repositories/${encodeURIComponent(repo)}/tags/${encodeURIComponent(tag)}`);
+            if (res.ok) {
+              this.inspectData = await res.json();
+              this.openInspectorModal = true;
+            }
+          } catch {
+            this.showToast('Failed to load image manifest details');
+          }
+        },
+
         async confirmDeleteTag(repo, tag) {
           if (!confirm(`Delete image tag '${repo}:${tag}'? This will remove the manifest and free storage.`)) {
             return;
@@ -722,19 +1112,47 @@ docker push <span x-text="registryHost"></span>/my-app:latest</code></pre>
           }
         },
 
+        async loadStorage() {
+          try {
+            const res = await fetch('/api/storage');
+            if (res.ok) {
+              this.storageStats = await res.json();
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        },
+
+        async triggerPrune() {
+          this.pruning = true;
+          try {
+            const res = await fetch('/api/maintenance/prune', { method: 'POST' });
+            if (res.ok) {
+              const data = await res.json();
+              this.showToast(data.message || 'Prune check finished');
+              await this.loadStorage();
+            }
+          } finally {
+            this.pruning = false;
+          }
+        },
+
+        async loadAuditLog() {
+          this.loadingAudit = true;
+          try {
+            const res = await fetch('/api/audit-log');
+            if (res.ok) {
+              const data = await res.json();
+              this.auditLogs = (data.events || []);
+            }
+          } finally {
+            this.loadingAudit = false;
+          }
+        },
+
         copyText(txt) {
           navigator.clipboard.writeText(txt);
           this.showToast('Copied to clipboard');
-        },
-
-        formatDate(iso) {
-          if (!iso || iso.startsWith('0001')) return 'Never';
-          try {
-            const d = new Date(iso);
-            return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          } catch {
-            return iso;
-          }
         }
       }
     }
