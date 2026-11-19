@@ -1,0 +1,17 @@
+services:
+  zotdeck:
+    build: .
+    image: zotdeck:latest
+    container_name: zotdeck
+    restart: unless-stopped
+    ports:
+      - "8089:8000"
+    environment:
+      - ZOT_ENDPOINT=http://zot-registry:5000
+      - ZOT_PUBLIC_DOMAIN=registry.mokshlabs.ai
+    networks:
+      - registry-net
+
+networks:
+  registry-net:
+    driver: bridge

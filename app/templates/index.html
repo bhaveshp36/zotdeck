@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZotDeck - OCI Registry & Credential Manager</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Alpine.js -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.5/dist/cdn.min.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    [x-cloak] { display: none !important; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white"
+      x-data="zotdeckApp()" x-init="initApp()" x-cloak>
+
+  <!-- Login Modal Overlay (when unauthenticated) -->
+  <div x-show="!authenticated" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-8 max-w-md w-full relative">
+      <div class="flex items-center space-x-3 mb-6">
+        <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+          <i data-lucide="layers" class="w-6 h-6 text-white"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold tracking-tight text-white">ZotDeck</h1>
+          <p class="text-xs text-slate-400">OCI Registry & Credential Manager</p>
+        </div>
+      </div>
+
+      <form @submit.prevent="submitLogin">
+        <div x-show="loginError" class="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-xs flex items-center space-x-2">
+          <i data-lucide="alert-circle" class="w-4 h-4 shrink-0"></i>
+          <span x-text="loginError"></span>
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1.5">Username</label>
+            <input type="text" x-model="loginForm.username" required placeholder="admin"
+                   class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1.5">Password</label>
+            <input type="password" x-model="loginForm.password" required placeholder="••••••••••••"
+                   class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+          </div>
+
+          <button type="submit" :disabled="loggingIn"
+                  class="w-full mt-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 px-4 rounded-lg text-sm shadow-lg shadow-indigo-600/30 transition flex items-center justify-center space-x-2 disabled:opacity-50">
+            <span x-show="!loggingIn">Sign In</span>
+            <span x-show="loggingIn" class="flex items-center space-x-2">
+              <i data-lucide="loader" class="w-4 h-4 animate-spin"></i>
+              <span>Authenticating...</span>
+            </span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Top Navigation Bar -->
+  <header class="border-b border-slate-800 bg-slate-900/60 backdrop-blur sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-4">
+        <div class="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center shadow-md shadow-indigo-600/20">
+          <i data-lucide="layers" class="w-5 h-5 text-white"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="font-bold text-base tracking-tight text-white">ZotDeck</span>
+            <span class="text-[10px] bg-indigo-500/20 text-indigo-400 font-semibold px-2 py-0.5 rounded-full border border-indigo-500/30">v1.0.0</span>
+          </div>
+          <p class="text-xs text-slate-400 truncate" x-text="registryHost"></p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="hidden md:flex space-x-1">
+        <button @click="currentTab = 'keys'"
+                :class="currentTab === 'keys' ? 'bg-slate-800 text-indigo-400 border border-slate-700' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'"
+                class="px-3.5 py-2 rounded-lg text-xs font-medium transition flex items-center space-x-2">
+          <i data-lucide="key" class="w-4 h-4"></i>
+          <span>API Credentials</span>
+          <span class="bg-slate-700 text-slate-300 text-[10px] px-1.5 py-0.5 rounded-full" x-text="keys.length"></span>
+        </button>
+
+        <button @click="currentTab = 'repos'"
+                :class="currentTab === 'repos' ? 'bg-slate-800 text-indigo-400 border border-slate-700' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'"
+                class="px-3.5 py-2 rounded-lg text-xs font-medium transition flex items-center space-x-2">
+          <i data-lucide="box" class="w-4 h-4"></i>
+          <span>Repositories</span>
+          <span class="bg-slate-700 text-slate-300 text-[10px] px-1.5 py-0.5 rounded-full" x-text="repositories.length"></span>
+        </button>
+
+        <button @click="currentTab = 'quickstart'"
+                :class="currentTab === 'quickstart' ? 'bg-slate-800 text-indigo-400 border border-slate-700' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'"
+                class="px-3.5 py-2 rounded-lg text-xs font-medium transition flex items-center space-x-2">
+          <i data-lucide="terminal" class="w-4 h-4"></i>
+          <span>Quickstart</span>
+        </button>
+      </nav>
+
+      <!-- User & Actions -->
+      <div class="flex items-center space-x-3">
+        <div class="flex items-center space-x-2 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full text-emerald-400 text-xs">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>Zot Active</span>
+        </div>
+
+        <div class="flex items-center space-x-2 pl-2 border-l border-slate-800">
+          <span class="text-xs text-slate-300 font-medium" x-text="currentUser"></span>
+          <button @click="logout" title="Sign out"
+                  class="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-lg transition">
+            <i data-lucide="log-out" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
+
+    <!-- Mobile Nav -->
+    <div class="flex md:hidden space-x-1 mb-6 border-b border-slate-800 pb-2">
+      <button @click="currentTab = 'keys'" :class="currentTab === 'keys' ? 'bg-slate-800 text-indigo-400' : 'text-slate-400'" class="px-3 py-1.5 rounded-lg text-xs font-medium">API Keys</button>
+      <button @click="currentTab = 'repos'" :class="currentTab === 'repos' ? 'bg-slate-800 text-indigo-400' : 'text-slate-400'" class="px-3 py-1.5 rounded-lg text-xs font-medium">Repositories</button>
+      <button @click="currentTab = 'quickstart'" :class="currentTab === 'quickstart' ? 'bg-slate-800 text-indigo-400' : 'text-slate-400'" class="px-3 py-1.5 rounded-lg text-xs font-medium">Quickstart</button>
+    </div>
+
+    <!-- TAB 1: API KEYS & CREDENTIALS -->
+    <div x-show="currentTab === 'keys'" class="space-y-6">
+      <!-- Section Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-slate-900 border border-slate-800 rounded-xl p-5">
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center space-x-2">
+            <span>Application Credentials & Scoped Keys</span>
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">
+            Issue dedicated, revocable API keys for CI/CD runners and application services without exposing master credentials.
+          </p>
+        </div>
+        <button @click="openCreateKeyModal = true"
+                class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2 px-4 rounded-lg text-xs shadow-md shadow-indigo-600/30 transition flex items-center justify-center space-x-2 shrink-0">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          <span>Issue New Key</span>
+        </button>
+      </div>
+
+      <!-- Keys Table -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
+        <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+          <div class="relative w-64">
+            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-slate-500"></i>
+            <input type="text" x-model="keySearch" placeholder="Search application label..."
+                   class="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-1.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+          </div>
+          <button @click="loadKeys" class="p-2 text-slate-400 hover:text-white transition" title="Refresh">
+            <i data-lucide="refresh-cw" class="w-4 h-4" :class="loadingKeys ? 'animate-spin' : ''"></i>
+          </button>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-slate-950/50 text-slate-400 uppercase font-semibold border-b border-slate-800">
+              <tr>
+                <th class="py-3 px-4">Application / Label</th>
+                <th class="py-3 px-4">Permissions (Scopes)</th>
+                <th class="py-3 px-4">Created Date</th>
+                <th class="py-3 px-4">Last Used</th>
+                <th class="py-3 px-4">UUID</th>
+                <th class="py-3 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60 font-mono">
+              <template x-for="k in filteredKeys" :key="k.uuid">
+                <tr class="hover:bg-slate-800/40 transition">
+                  <td class="py-3 px-4 font-sans font-medium text-white flex items-center space-x-2">
+                    <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                    <span x-text="k.label"></span>
+                  </td>
+                  <td class="py-3 px-4">
+                    <span x-show="k.scopes && k.scopes.includes('create')"
+                          class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded text-[10px] font-sans mr-1">
+                      Push & Pull
+                    </span>
+                    <span x-show="!k.scopes || !k.scopes.includes('create')"
+                          class="bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded text-[10px] font-sans">
+                      Pull Only
+                    </span>
+                  </td>
+                  <td class="py-3 px-4 text-slate-400" x-text="formatDate(k.createdAt)"></td>
+                  <td class="py-3 px-4">
+                    <span x-show="k.lastUsed && k.lastUsed !== '0001-01-01T00:00:00Z'" class="text-slate-300" x-text="formatDate(k.lastUsed)"></span>
+                    <span x-show="!k.lastUsed || k.lastUsed === '0001-01-01T00:00:00Z'" class="text-slate-500 italic">Never</span>
+                  </td>
+                  <td class="py-3 px-4 text-slate-500 text-[11px]" x-text="k.uuid.slice(0, 13) + '...'"></td>
+                  <td class="py-3 px-4 text-right">
+                    <button @click="confirmRevoke(k)"
+                            class="px-2.5 py-1 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 hover:border-red-500/40 transition font-sans text-xs">
+                      Revoke
+                    </button>
+                  </td>
+                </tr>
+              </template>
+              <tr x-show="filteredKeys.length === 0">
+                <td colspan="6" class="py-8 text-center text-slate-500 font-sans">
+                  No API keys found. Click "Issue New Key" above to generate credentials.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: REPOSITORIES & IMAGES -->
+    <div x-show="currentTab === 'repos'" class="space-y-6">
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-bold text-white">Container Image Catalog</h2>
+          <p class="text-xs text-slate-400 mt-0.5">Explore stored OCI images, inspect tags, and clean up unneeded manifests.</p>
+        </div>
+        <button @click="loadRepositories" class="p-2 text-slate-400 hover:text-white transition" title="Refresh">
+          <i data-lucide="refresh-cw" class="w-4 h-4" :class="loadingRepos ? 'animate-spin' : ''"></i>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 gap-4">
+        <template x-for="r in repositories" :key="r.name">
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center">
+                  <i data-lucide="box" class="w-4 h-4 text-indigo-400"></i>
+                </div>
+                <div>
+                  <h3 class="text-sm font-bold text-white font-mono" x-text="r.name"></h3>
+                  <p class="text-xs text-slate-400" x-text="r.tag_count + ' tags available'"></p>
+                </div>
+              </div>
+              <div class="flex items-center space-x-2">
+                <button @click="copyText(r.pull_command)"
+                        class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-mono text-slate-300 transition flex items-center space-x-1.5">
+                  <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                  <span>Copy Pull Command</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Tags List -->
+            <div class="bg-slate-950 border border-slate-800/80 rounded-lg p-3">
+              <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Available Tags</div>
+              <div class="flex flex-wrap gap-2">
+                <template x-for="tag in r.tags" :key="tag">
+                  <div class="flex items-center space-x-2 bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg text-xs font-mono text-slate-300">
+                    <span x-text="tag"></span>
+                    <button @click="confirmDeleteTag(r.name, tag)" title="Delete tag"
+                            class="text-slate-500 hover:text-red-400 transition ml-1">
+                      <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                    </button>
+                  </div>
+                </template>
+                <span x-show="r.tags.length === 0" class="text-xs text-slate-500 italic">No tags pushed yet</span>
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <div x-show="repositories.length === 0" class="bg-slate-900 border border-slate-800 rounded-xl p-12 text-center">
+          <i data-lucide="box" class="w-10 h-10 text-slate-600 mx-auto mb-3"></i>
+          <h3 class="text-sm font-semibold text-white">No Container Images Yet</h3>
+          <p class="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+            Push an image to this registry using the Docker CLI to see it appear here.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: QUICKSTART GUIDE -->
+    <div x-show="currentTab === 'quickstart'" class="space-y-6">
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+        <h2 class="text-base font-bold text-white mb-2">Connecting Your Tools to Zot</h2>
+        <p class="text-xs text-slate-400 mb-6">Standard snippets to authenticate Docker CLI, CI/CD pipelines, and orchestrators.</p>
+
+        <div class="space-y-6">
+          <!-- 1. Docker CLI -->
+          <div>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-400 mb-2">1. Authenticate Docker CLI</h3>
+            <div class="bg-slate-950 border border-slate-800 rounded-lg p-3 relative font-mono text-xs text-slate-300">
+              <pre><code>echo "&lt;YOUR_API_KEY&gt;" | docker login <span x-text="registryHost"></span> -u admin --password-stdin</code></pre>
+            </div>
+          </div>
+
+          <!-- 2. Tag & Push -->
+          <div>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-400 mb-2">2. Tag and Push an Image</h3>
+            <div class="bg-slate-950 border border-slate-800 rounded-lg p-3 relative font-mono text-xs text-slate-300">
+              <pre><code>docker tag my-app:latest <span x-text="registryHost"></span>/my-app:latest
+docker push <span x-text="registryHost"></span>/my-app:latest</code></pre>
+            </div>
+          </div>
+
+          <!-- 3. GitHub Actions -->
+          <div>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-400 mb-2">3. GitHub Actions Workflow</h3>
+            <div class="bg-slate-950 border border-slate-800 rounded-lg p-3 relative font-mono text-xs text-slate-300">
+              <pre><code>- name: Login to Private Registry
+  uses: docker/login-action@v3
+  with:
+    registry: <span x-text="registryHost"></span>
+    username: admin
+    password: {% raw %}${{ secrets.REGISTRY_API_KEY }}{% endraw %}</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- MODAL: Issue New Key -->
+  <div x-show="openCreateKeyModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl relative" @click.away="openCreateKeyModal = false">
+      <h3 class="text-base font-bold text-white mb-1">Issue Application API Key</h3>
+      <p class="text-xs text-slate-400 mb-4">Create a scoped credential for a specific service or runner.</p>
+
+      <form @submit.prevent="submitCreateKey">
+        <div class="space-y-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Application Name / Label *</label>
+            <input type="text" x-model="newKeyForm.label" required placeholder="e.g. pulte-worker, github-ci"
+                   class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Permissions (Scopes)</label>
+            <div class="space-y-2 bg-slate-950 border border-slate-800 p-3 rounded-lg text-xs">
+              <label class="flex items-center space-x-2 text-slate-300 cursor-pointer">
+                <input type="checkbox" checked disabled class="rounded border-slate-700 text-indigo-600">
+                <span>Pull Images (<code class="text-indigo-400">read</code>)</span>
+              </label>
+              <label class="flex items-center space-x-2 text-slate-300 cursor-pointer">
+                <input type="checkbox" x-model="newKeyForm.canPush" class="rounded border-slate-700 text-indigo-600 focus:ring-0">
+                <span>Push & Update Images (<code class="text-emerald-400">create, update</code>)</span>
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Expiration (Optional)</label>
+            <input type="date" x-model="newKeyForm.expiry"
+                   class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            <span class="text-[10px] text-slate-500 mt-1 block">Leave empty for never-expiring key</span>
+          </div>
+
+          <div class="flex justify-end space-x-2 pt-2">
+            <button type="button" @click="openCreateKeyModal = false"
+                    class="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition">
+              Cancel
+            </button>
+            <button type="submit" :disabled="creatingKey"
+                    class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs shadow-md transition disabled:opacity-50">
+              <span x-show="!creatingKey">Generate Key</span>
+              <span x-show="creatingKey">Generating...</span>
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Key Generated Successfully -->
+  <div x-show="openKeySuccessModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl relative">
+      <div class="flex items-center space-x-2 text-emerald-400 mb-2">
+        <i data-lucide="check-circle" class="w-5 h-5"></i>
+        <h3 class="text-base font-bold text-white">API Key Generated!</h3>
+      </div>
+      <p class="text-xs text-slate-400 mb-4">
+        Make sure to copy your API key now. You won't be able to see it again!
+      </p>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">API Key Token</label>
+          <div class="flex items-center space-x-2">
+            <input type="text" readonly :value="generatedKeyData.apiKey"
+                   class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 font-mono text-xs text-emerald-400 select-all">
+            <button @click="copyText(generatedKeyData.apiKey)"
+                    class="bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-2 rounded-lg text-xs font-medium text-white transition flex items-center space-x-1">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+              <span>Copy</span>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Docker Login Command</label>
+          <div class="bg-slate-950 border border-slate-800 rounded-lg p-2.5 font-mono text-[11px] text-slate-300 relative group">
+            <pre><code x-text="'echo \"' + generatedKeyData.apiKey + '\" | docker login ' + registryHost + ' -u admin --password-stdin'"></code></pre>
+            <button @click="copyText('echo &quot;' + generatedKeyData.apiKey + '&quot; | docker login ' + registryHost + ' -u admin --password-stdin')"
+                    class="absolute top-2 right-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 px-2 py-1 rounded text-[10px] text-white">
+              Copy Command
+            </button>
+          </div>
+        </div>
+
+        <div class="flex justify-end pt-2">
+          <button @click="openKeySuccessModal = false"
+                  class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-medium transition">
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div x-show="toast.visible" x-transition
+       class="fixed bottom-4 right-4 z-50 bg-slate-900 border border-slate-700 text-white text-xs px-4 py-2.5 rounded-xl shadow-xl flex items-center space-x-2">
+    <i data-lucide="info" class="w-4 h-4 text-indigo-400"></i>
+    <span x-text="toast.message"></span>
+  </div>
+
+  <script>
+    function zotdeckApp() {
+      return {
+        authenticated: false,
+        currentUser: 'admin',
+        registryHost: 'registry.mokshlabs.ai',
+        currentTab: 'keys',
+        loggingIn: false,
+        loginError: '',
+        loginForm: { username: '', password: '' },
+
+        keys: [],
+        keySearch: '',
+        loadingKeys: false,
+        openCreateKeyModal: false,
+        creatingKey: false,
+        newKeyForm: { label: '', canPush: true, expiry: '' },
+
+        openKeySuccessModal: false,
+        generatedKeyData: { apiKey: '', label: '' },
+
+        repositories: [],
+        loadingRepos: false,
+
+        toast: { visible: false, message: '' },
+
+        async initApp() {
+          await this.checkAuth();
+          if (this.authenticated) {
+            await Promise.all([this.loadKeys(), this.loadRepositories()]);
+          }
+          this.$nextTick(() => lucide.createIcons());
+        },
+
+        showToast(msg) {
+          this.toast.message = msg;
+          this.toast.visible = true;
+          this.$nextTick(() => lucide.createIcons());
+          setTimeout(() => this.toast.visible = false, 3000);
+        },
+
+        async checkAuth() {
+          try {
+            const res = await fetch('/api/auth/me');
+            if (res.ok) {
+              const data = await res.json();
+              this.authenticated = true;
+              this.currentUser = data.username;
+            } else {
+              this.authenticated = false;
+            }
+          } catch {
+            this.authenticated = false;
+          }
+        },
+
+        async submitLogin() {
+          this.loggingIn = true;
+          this.loginError = '';
+          try {
+            const res = await fetch('/api/auth/login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(this.loginForm)
+            });
+            if (res.ok) {
+              this.authenticated = true;
+              this.currentUser = this.loginForm.username;
+              await Promise.all([this.loadKeys(), this.loadRepositories()]);
+              this.showToast('Signed in successfully');
+            } else {
+              this.loginError = 'Invalid username or password';
+            }
+          } catch (e) {
+            this.loginError = 'Failed to connect to backend';
+          } finally {
+            this.loggingIn = false;
+            this.$nextTick(() => lucide.createIcons());
+          }
+        },
+
+        async logout() {
+          await fetch('/api/auth/logout', { method: 'POST' });
+          this.authenticated = false;
+          this.keys = [];
+          this.repositories = [];
+          this.$nextTick(() => lucide.createIcons());
+        },
+
+        async loadKeys() {
+          this.loadingKeys = true;
+          try {
+            const res = await fetch('/api/keys');
+            if (res.ok) {
+              const data = await res.json();
+              this.keys = data.apiKeys || [];
+            }
+          } finally {
+            this.loadingKeys = false;
+            this.$nextTick(() => lucide.createIcons());
+          }
+        },
+
+        get filteredKeys() {
+          if (!this.keySearch) return this.keys;
+          return this.keys.filter(k => k.label.toLowerCase().includes(this.keySearch.toLowerCase()));
+        },
+
+        async submitCreateKey() {
+          this.creatingKey = true;
+          try {
+            const scopes = this.newKeyForm.canPush ? ['read', 'create', 'update'] : ['read'];
+            let exp = null;
+            if (this.newKeyForm.expiry) {
+              exp = new Date(this.newKeyForm.expiry).toISOString();
+            }
+
+            const res = await fetch('/api/keys', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                label: this.newKeyForm.label,
+                scopes: scopes,
+                expirationDate: exp
+              })
+            });
+
+            if (res.ok) {
+              const data = await res.json();
+              this.openCreateKeyModal = false;
+              this.generatedKeyData = data;
+              this.openKeySuccessModal = true;
+              this.newKeyForm = { label: '', canPush: true, expiry: '' };
+              await this.loadKeys();
+            } else {
+              alert('Failed to issue key');
+            }
+          } finally {
+            this.creatingKey = false;
+            this.$nextTick(() => lucide.createIcons());
+          }
+        },
+
+        async confirmRevoke(key) {
+          if (!confirm(`Are you sure you want to revoke key '${key.label}'? Any pipeline using it will immediately be blocked.`)) {
+            return;
+          }
+          const res = await fetch(`/api/keys/${key.uuid}`, { method: 'DELETE' });
+          if (res.ok) {
+            this.showToast(`Revoked key '${key.label}'`);
+            await this.loadKeys();
+          } else {
+            alert('Failed to revoke key');
+          }
+        },
+
+        async loadRepositories() {
+          this.loadingRepos = true;
+          try {
+            const res = await fetch('/api/repositories');
+            if (res.ok) {
+              const data = await res.json();
+              this.repositories = data.repositories || [];
+            }
+          } finally {
+            this.loadingRepos = false;
+            this.$nextTick(() => lucide.createIcons());
+          }
+        },
+
+        async confirmDeleteTag(repo, tag) {
+          if (!confirm(`Delete image tag '${repo}:${tag}'? This will remove the manifest and free storage.`)) {
+            return;
+          }
+          const res = await fetch(`/api/repositories/${encodeURIComponent(repo)}/tags/${encodeURIComponent(tag)}`, {
+            method: 'DELETE'
+          });
+          if (res.ok) {
+            this.showToast(`Deleted tag ${repo}:${tag}`);
+            await this.loadRepositories();
+          } else {
+            alert('Failed to delete tag');
+          }
+        },
+
+        copyText(txt) {
+          navigator.clipboard.writeText(txt);
+          this.showToast('Copied to clipboard');
+        },
+
+        formatDate(iso) {
+          if (!iso || iso.startsWith('0001')) return 'Never';
+          try {
+            const d = new Date(iso);
+            return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          } catch {
+            return iso;
+          }
+        }
+      }
+    }
+  </script>
+</body>
+</html>
