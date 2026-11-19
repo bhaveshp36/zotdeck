@@ -2,7 +2,7 @@
 <html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>ZotDeck - OCI Registry & Credential Manager</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -25,53 +25,51 @@
   </script>
   <!-- Alpine.js -->
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.5/dist/cdn.min.js"></script>
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
   <style>
     [x-cloak] { display: none !important; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white"
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white transition-colors duration-150"
       x-data="zotdeckApp()" x-init="initApp()" x-cloak>
 
   <!-- Login Modal Overlay (when unauthenticated) -->
-  <div x-show="!authenticated" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-8 max-w-md w-full relative">
+  <div x-show="!authenticated" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-6 sm:p-8 max-w-md w-full relative">
       <div class="flex items-center space-x-3 mb-6">
-        <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-          <i data-lucide="layers" class="w-6 h-6 text-white"></i>
+        <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 text-white shrink-0">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m16.5 7.5-9 4.5m9 4.5-9-4.5M3 7.5l9-4.5 9 4.5-9 4.5-9-4.5Zm0 9 9 4.5 9-4.5"/></svg>
         </div>
         <div>
-          <h1 class="text-xl font-bold tracking-tight text-white">ZotDeck</h1>
-          <p class="text-xs text-slate-400">OCI Registry & Credential Manager</p>
+          <h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">ZotDeck</h1>
+          <p class="text-xs text-slate-500 dark:text-slate-400">OCI Registry & Credential Manager</p>
         </div>
       </div>
 
       <form @submit.prevent="submitLogin">
-        <div x-show="loginError" class="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-xs flex items-center space-x-2">
-          <i data-lucide="alert-circle" class="w-4 h-4 shrink-0"></i>
+        <div x-show="loginError" class="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-600 dark:text-red-400 text-xs flex items-center space-x-2">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           <span x-text="loginError"></span>
         </div>
 
         <div class="space-y-4">
           <div>
-            <label class="block text-xs font-medium text-slate-300 mb-1.5">Username</label>
+            <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">Username</label>
             <input type="text" x-model="loginForm.username" required placeholder="admin"
-                   class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                   class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
           </div>
 
           <div>
-            <label class="block text-xs font-medium text-slate-300 mb-1.5">Password</label>
+            <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">Password</label>
             <input type="password" x-model="loginForm.password" required placeholder="••••••••••••"
-                   class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                   class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
           </div>
 
           <button type="submit" :disabled="loggingIn"
                   class="w-full mt-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 px-4 rounded-lg text-sm shadow-lg shadow-indigo-600/30 transition flex items-center justify-center space-x-2 disabled:opacity-50">
             <span x-show="!loggingIn">Sign In</span>
             <span x-show="loggingIn" class="flex items-center space-x-2">
-              <i data-lucide="loader" class="w-4 h-4 animate-spin"></i>
+              <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 12a8 8 0 018-8v8H4z"/></svg>
               <span>Authenticating...</span>
             </span>
           </button>
@@ -81,110 +79,136 @@
   </div>
 
   <!-- Top Navigation Bar -->
-  <header class="border-b border-slate-800 bg-slate-900/60 backdrop-blur sticky top-0 z-40">
+  <header class="border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/70 backdrop-blur sticky top-0 z-40 transition-colors">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-      <div class="flex items-center space-x-4">
-        <div class="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center shadow-md shadow-indigo-600/20">
-          <i data-lucide="layers" class="w-5 h-5 text-white"></i>
+      <div class="flex items-center space-x-3 sm:space-x-4">
+        <div class="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center shadow-md shadow-indigo-600/20 text-white shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m16.5 7.5-9 4.5m9 4.5-9-4.5M3 7.5l9-4.5 9 4.5-9 4.5-9-4.5Zm0 9 9 4.5 9-4.5"/></svg>
         </div>
         <div>
           <div class="flex items-center space-x-2">
-            <span class="font-bold text-base tracking-tight text-white">ZotDeck</span>
-            <span class="text-[10px] bg-indigo-500/20 text-indigo-400 font-semibold px-2 py-0.5 rounded-full border border-indigo-500/30">v1.0.0</span>
+            <span class="font-bold text-base tracking-tight text-slate-900 dark:text-white">ZotDeck</span>
+            <span class="text-[10px] bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-semibold px-2 py-0.5 rounded-full border border-indigo-500/30">v1.1.0</span>
           </div>
-          <p class="text-xs text-slate-400 truncate" x-text="registryHost"></p>
+          <p class="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[140px] sm:max-w-xs" x-text="registryHost"></p>
         </div>
       </div>
 
-      <!-- Navigation Tabs -->
+      <!-- Navigation Tabs (Desktop) -->
       <nav class="hidden md:flex space-x-1">
         <button @click="currentTab = 'keys'"
-                :class="currentTab === 'keys' ? 'bg-slate-800 text-indigo-400 border border-slate-700' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'"
+                :class="currentTab === 'keys' ? 'bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-slate-200 dark:border-slate-700' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'"
                 class="px-3.5 py-2 rounded-lg text-xs font-medium transition flex items-center space-x-2">
-          <i data-lucide="key" class="w-4 h-4"></i>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"/><path stroke-linecap="round" stroke-linejoin="round" d="m21 2-9.6 9.6m0 0v3h3v3h3v-3h3v-3"/></svg>
           <span>API Credentials</span>
-          <span class="bg-slate-700 text-slate-300 text-[10px] px-1.5 py-0.5 rounded-full" x-text="keys.length"></span>
+          <span class="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-[10px] px-1.5 py-0.5 rounded-full font-mono" x-text="keys.length"></span>
         </button>
 
         <button @click="currentTab = 'repos'"
-                :class="currentTab === 'repos' ? 'bg-slate-800 text-indigo-400 border border-slate-700' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'"
+                :class="currentTab === 'repos' ? 'bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-slate-200 dark:border-slate-700' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'"
                 class="px-3.5 py-2 rounded-lg text-xs font-medium transition flex items-center space-x-2">
-          <i data-lucide="box" class="w-4 h-4"></i>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path stroke-linecap="round" stroke-linejoin="round" d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg>
           <span>Repositories</span>
-          <span class="bg-slate-700 text-slate-300 text-[10px] px-1.5 py-0.5 rounded-full" x-text="repositories.length"></span>
+          <span class="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-[10px] px-1.5 py-0.5 rounded-full font-mono" x-text="repositories.length"></span>
         </button>
 
         <button @click="currentTab = 'quickstart'"
-                :class="currentTab === 'quickstart' ? 'bg-slate-800 text-indigo-400 border border-slate-700' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'"
+                :class="currentTab === 'quickstart' ? 'bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-slate-200 dark:border-slate-700' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'"
                 class="px-3.5 py-2 rounded-lg text-xs font-medium transition flex items-center space-x-2">
-          <i data-lucide="terminal" class="w-4 h-4"></i>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
           <span>Quickstart</span>
         </button>
       </nav>
 
-      <!-- User & Actions -->
-      <div class="flex items-center space-x-3">
-        <div class="flex items-center space-x-2 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full text-emerald-400 text-xs">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span>Zot Active</span>
+      <!-- User & Theme Controls -->
+      <div class="flex items-center space-x-2 sm:space-x-3">
+        <!-- Theme Toggle Button -->
+        <button @click="toggleTheme" title="Toggle Theme"
+                class="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg transition shrink-0">
+          <span x-show="theme === 'dark'">
+            <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+          </span>
+          <span x-show="theme === 'light'">
+            <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+          </span>
+        </button>
+
+        <div class="hidden lg:flex items-center space-x-2 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full text-emerald-600 dark:text-emerald-400 text-xs">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>Zot Connected</span>
         </div>
 
-        <div class="flex items-center space-x-2 pl-2 border-l border-slate-800">
-          <span class="text-xs text-slate-300 font-medium" x-text="currentUser"></span>
+        <div class="flex items-center space-x-2 pl-2 border-l border-slate-200 dark:border-slate-800">
+          <span class="text-xs text-slate-600 dark:text-slate-300 font-medium hidden sm:inline" x-text="currentUser"></span>
           <button @click="logout" title="Sign out"
-                  class="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-lg transition">
-            <i data-lucide="log-out" class="w-4 h-4"></i>
+                  class="p-2 text-slate-400 hover:text-red-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
           </button>
         </div>
       </div>
     </div>
   </header>
 
-  <!-- Main Content Area -->
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
+  <!-- Mobile Tab Navigation -->
+  <div class="md:hidden bg-white/90 dark:bg-slate-900/90 border-b border-slate-200 dark:border-slate-800 px-4 py-2 sticky top-16 z-30 flex space-x-2 overflow-x-auto">
+    <button @click="currentTab = 'keys'"
+            :class="currentTab === 'keys' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'"
+            class="px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition flex items-center space-x-1.5">
+      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"/><path stroke-linecap="round" stroke-linejoin="round" d="m21 2-9.6 9.6m0 0v3h3v3h3v-3h3v-3"/></svg>
+      <span>API Keys (<span x-text="keys.length"></span>)</span>
+    </button>
+    <button @click="currentTab = 'repos'"
+            :class="currentTab === 'repos' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'"
+            class="px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition flex items-center space-x-1.5">
+      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path stroke-linecap="round" stroke-linejoin="round" d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg>
+      <span>Repositories (<span x-text="repositories.length"></span>)</span>
+    </button>
+    <button @click="currentTab = 'quickstart'"
+            :class="currentTab === 'quickstart' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'"
+            class="px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition flex items-center space-x-1.5">
+      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+      <span>Quickstart</span>
+    </button>
+  </div>
 
-    <!-- Mobile Nav -->
-    <div class="flex md:hidden space-x-1 mb-6 border-b border-slate-800 pb-2">
-      <button @click="currentTab = 'keys'" :class="currentTab === 'keys' ? 'bg-slate-800 text-indigo-400' : 'text-slate-400'" class="px-3 py-1.5 rounded-lg text-xs font-medium">API Keys</button>
-      <button @click="currentTab = 'repos'" :class="currentTab === 'repos' ? 'bg-slate-800 text-indigo-400' : 'text-slate-400'" class="px-3 py-1.5 rounded-lg text-xs font-medium">Repositories</button>
-      <button @click="currentTab = 'quickstart'" :class="currentTab === 'quickstart' ? 'bg-slate-800 text-indigo-400' : 'text-slate-400'" class="px-3 py-1.5 rounded-lg text-xs font-medium">Quickstart</button>
-    </div>
+  <!-- Main Content Area -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1 w-full">
 
     <!-- TAB 1: API KEYS & CREDENTIALS -->
     <div x-show="currentTab === 'keys'" class="space-y-6">
       <!-- Section Header -->
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-slate-900 border border-slate-800 rounded-xl p-5">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
         <div>
-          <h2 class="text-lg font-bold text-white flex items-center space-x-2">
+          <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center space-x-2">
             <span>Application Credentials & Scoped Keys</span>
           </h2>
-          <p class="text-xs text-slate-400 mt-0.5">
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             Issue dedicated, revocable API keys for CI/CD runners and application services without exposing master credentials.
           </p>
         </div>
         <button @click="openCreateKeyModal = true"
                 class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2 px-4 rounded-lg text-xs shadow-md shadow-indigo-600/30 transition flex items-center justify-center space-x-2 shrink-0">
-          <i data-lucide="plus" class="w-4 h-4"></i>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           <span>Issue New Key</span>
         </button>
       </div>
 
       <!-- Keys Table -->
-      <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
-        <div class="p-4 border-b border-slate-800 flex items-center justify-between">
-          <div class="relative w-64">
-            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-slate-500"></i>
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+        <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
+          <div class="relative flex-1 max-w-xs">
+            <svg class="w-4 h-4 absolute left-3 top-2.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input type="text" x-model="keySearch" placeholder="Search application label..."
-                   class="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-1.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                   class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
           </div>
-          <button @click="loadKeys" class="p-2 text-slate-400 hover:text-white transition" title="Refresh">
-            <i data-lucide="refresh-cw" class="w-4 h-4" :class="loadingKeys ? 'animate-spin' : ''"></i>
+          <button @click="loadKeys" class="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition" title="Refresh">
+            <svg class="w-4 h-4" :class="loadingKeys ? 'animate-spin' : ''" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
           </button>
         </div>
 
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs text-slate-300">
-            <thead class="bg-slate-950/50 text-slate-400 uppercase font-semibold border-b border-slate-800">
+          <table class="w-full text-left text-xs text-slate-700 dark:text-slate-300">
+            <thead class="bg-slate-50 dark:bg-slate-950/50 text-slate-500 dark:text-slate-400 uppercase font-semibold border-b border-slate-200 dark:border-slate-800 whitespace-nowrap">
               <tr>
                 <th class="py-3 px-4">Application / Label</th>
                 <th class="py-3 px-4">Permissions (Scopes)</th>
@@ -194,39 +218,39 @@
                 <th class="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-slate-800/60 font-mono">
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60 font-mono">
               <template x-for="k in filteredKeys" :key="k.uuid">
-                <tr class="hover:bg-slate-800/40 transition">
-                  <td class="py-3 px-4 font-sans font-medium text-white flex items-center space-x-2">
-                    <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
+                  <td class="py-3 px-4 font-sans font-medium text-slate-900 dark:text-white flex items-center space-x-2 whitespace-nowrap">
+                    <span class="w-2 h-2 rounded-full bg-indigo-500 shrink-0"></span>
                     <span x-text="k.label"></span>
                   </td>
-                  <td class="py-3 px-4">
+                  <td class="py-3 px-4 whitespace-nowrap">
                     <span x-show="k.scopes && k.scopes.includes('create')"
-                          class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded text-[10px] font-sans mr-1">
+                          class="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[10px] font-sans mr-1">
                       Push & Pull
                     </span>
                     <span x-show="!k.scopes || !k.scopes.includes('create')"
-                          class="bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded text-[10px] font-sans">
+                          class="bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded text-[10px] font-sans">
                       Pull Only
                     </span>
                   </td>
-                  <td class="py-3 px-4 text-slate-400" x-text="formatDate(k.createdAt)"></td>
-                  <td class="py-3 px-4">
-                    <span x-show="k.lastUsed && k.lastUsed !== '0001-01-01T00:00:00Z'" class="text-slate-300" x-text="formatDate(k.lastUsed)"></span>
-                    <span x-show="!k.lastUsed || k.lastUsed === '0001-01-01T00:00:00Z'" class="text-slate-500 italic">Never</span>
+                  <td class="py-3 px-4 text-slate-500 dark:text-slate-400 whitespace-nowrap" x-text="formatDate(k.createdAt)"></td>
+                  <td class="py-3 px-4 whitespace-nowrap">
+                    <span x-show="k.lastUsed && k.lastUsed !== '0001-01-01T00:00:00Z'" class="text-slate-700 dark:text-slate-300" x-text="formatDate(k.lastUsed)"></span>
+                    <span x-show="!k.lastUsed || k.lastUsed === '0001-01-01T00:00:00Z'" class="text-slate-400 italic">Never</span>
                   </td>
-                  <td class="py-3 px-4 text-slate-500 text-[11px]" x-text="k.uuid.slice(0, 13) + '...'"></td>
-                  <td class="py-3 px-4 text-right">
+                  <td class="py-3 px-4 text-slate-400 text-[11px] whitespace-nowrap" x-text="k.uuid.slice(0, 13) + '...'"></td>
+                  <td class="py-3 px-4 text-right whitespace-nowrap">
                     <button @click="confirmRevoke(k)"
-                            class="px-2.5 py-1 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 hover:border-red-500/40 transition font-sans text-xs">
+                            class="px-2.5 py-1 rounded bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20 hover:border-red-500/40 transition font-sans text-xs">
                       Revoke
                     </button>
                   </td>
                 </tr>
               </template>
               <tr x-show="filteredKeys.length === 0">
-                <td colspan="6" class="py-8 text-center text-slate-500 font-sans">
+                <td colspan="6" class="py-8 text-center text-slate-400 font-sans">
                   No API keys found. Click "Issue New Key" above to generate credentials.
                 </td>
               </tr>
@@ -238,61 +262,68 @@
 
     <!-- TAB 2: REPOSITORIES & IMAGES -->
     <div x-show="currentTab === 'repos'" class="space-y-6">
-      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 flex items-center justify-between">
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shadow-sm">
         <div>
-          <h2 class="text-lg font-bold text-white">Container Image Catalog</h2>
-          <p class="text-xs text-slate-400 mt-0.5">Explore stored OCI images, inspect tags, and clean up unneeded manifests.</p>
+          <h2 class="text-lg font-bold text-slate-900 dark:text-white">Container Image Catalog</h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Explore stored OCI images, inspect tags, and clean up unneeded manifests.</p>
         </div>
-        <button @click="loadRepositories" class="p-2 text-slate-400 hover:text-white transition" title="Refresh">
-          <i data-lucide="refresh-cw" class="w-4 h-4" :class="loadingRepos ? 'animate-spin' : ''"></i>
-        </button>
+        <div class="flex items-center space-x-3">
+          <div class="relative w-full sm:w-64">
+            <svg class="w-4 h-4 absolute left-3 top-2.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" x-model="repoSearch" placeholder="Filter repositories..."
+                   class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+          </div>
+          <button @click="loadRepositories" class="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition shrink-0" title="Refresh">
+            <svg class="w-4 h-4" :class="loadingRepos ? 'animate-spin' : ''" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+          </button>
+        </div>
       </div>
 
       <div class="grid grid-cols-1 gap-4">
-        <template x-for="r in repositories" :key="r.name">
-          <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
-            <div class="flex items-center justify-between">
+        <template x-for="r in filteredRepositories" :key="r.name">
+          <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div class="flex items-center space-x-3">
-                <div class="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center">
-                  <i data-lucide="box" class="w-4 h-4 text-indigo-400"></i>
+                <div class="w-9 h-9 rounded-lg bg-indigo-50 dark:bg-slate-800 border border-indigo-100 dark:border-slate-700 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path stroke-linecap="round" stroke-linejoin="round" d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg>
                 </div>
                 <div>
-                  <h3 class="text-sm font-bold text-white font-mono" x-text="r.name"></h3>
-                  <p class="text-xs text-slate-400" x-text="r.tag_count + ' tags available'"></p>
+                  <h3 class="text-sm font-bold text-slate-900 dark:text-white font-mono break-all" x-text="r.name"></h3>
+                  <p class="text-xs text-slate-500 dark:text-slate-400" x-text="r.tag_count + ' tags available'"></p>
                 </div>
               </div>
               <div class="flex items-center space-x-2">
                 <button @click="copyText(r.pull_command)"
-                        class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-mono text-slate-300 transition flex items-center space-x-1.5">
-                  <i data-lucide="copy" class="w-3.5 h-3.5"></i>
-                  <span>Copy Pull Command</span>
+                        class="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-mono text-slate-700 dark:text-slate-300 transition flex items-center space-x-1.5">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                  <span>Copy Pull</span>
                 </button>
               </div>
             </div>
 
             <!-- Tags List -->
-            <div class="bg-slate-950 border border-slate-800/80 rounded-lg p-3">
-              <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Available Tags</div>
+            <div class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-lg p-3">
+              <div class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Available Tags</div>
               <div class="flex flex-wrap gap-2">
                 <template x-for="tag in r.tags" :key="tag">
-                  <div class="flex items-center space-x-2 bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg text-xs font-mono text-slate-300">
+                  <div class="flex items-center space-x-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-1 rounded-lg text-xs font-mono text-slate-700 dark:text-slate-300 shadow-sm">
                     <span x-text="tag"></span>
                     <button @click="confirmDeleteTag(r.name, tag)" title="Delete tag"
-                            class="text-slate-500 hover:text-red-400 transition ml-1">
-                      <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            class="text-slate-400 hover:text-red-500 transition ml-1">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2m-6 5v6m4-6v6"/></svg>
                     </button>
                   </div>
                 </template>
-                <span x-show="r.tags.length === 0" class="text-xs text-slate-500 italic">No tags pushed yet</span>
+                <span x-show="r.tags.length === 0" class="text-xs text-slate-400 italic">No tags pushed yet</span>
               </div>
             </div>
           </div>
         </template>
 
-        <div x-show="repositories.length === 0" class="bg-slate-900 border border-slate-800 rounded-xl p-12 text-center">
-          <i data-lucide="box" class="w-10 h-10 text-slate-600 mx-auto mb-3"></i>
-          <h3 class="text-sm font-semibold text-white">No Container Images Yet</h3>
-          <p class="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+        <div x-show="filteredRepositories.length === 0" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-12 text-center shadow-sm">
+          <svg class="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path stroke-linecap="round" stroke-linejoin="round" d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg>
+          <h3 class="text-sm font-semibold text-slate-900 dark:text-white">No Container Images Found</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto">
             Push an image to this registry using the Docker CLI to see it appear here.
           </p>
         </div>
@@ -301,32 +332,79 @@
 
     <!-- TAB 3: QUICKSTART GUIDE -->
     <div x-show="currentTab === 'quickstart'" class="space-y-6">
-      <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
-        <h2 class="text-base font-bold text-white mb-2">Connecting Your Tools to Zot</h2>
-        <p class="text-xs text-slate-400 mb-6">Standard snippets to authenticate Docker CLI, CI/CD pipelines, and orchestrators.</p>
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 sm:p-6 shadow-sm">
+        <h2 class="text-base font-bold text-slate-900 dark:text-white mb-1">Tool Integration Guide</h2>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mb-6">Ready-to-use snippets to authenticate your preferred runtime or CI/CD platform.</p>
 
         <div class="space-y-6">
           <!-- 1. Docker CLI -->
           <div>
-            <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-400 mb-2">1. Authenticate Docker CLI</h3>
-            <div class="bg-slate-950 border border-slate-800 rounded-lg p-3 relative font-mono text-xs text-slate-300">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">1. Docker CLI</h3>
+              <button @click="copyText('echo &quot;<YOUR_API_KEY>&quot; | docker login ' + registryHost + ' -u admin --password-stdin')"
+                      class="text-[11px] text-slate-500 hover:text-indigo-500 flex items-center space-x-1">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                <span>Copy</span>
+              </button>
+            </div>
+            <div class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-3 font-mono text-xs text-slate-800 dark:text-slate-300 overflow-x-auto">
               <pre><code>echo "&lt;YOUR_API_KEY&gt;" | docker login <span x-text="registryHost"></span> -u admin --password-stdin</code></pre>
             </div>
           </div>
 
           <!-- 2. Tag & Push -->
           <div>
-            <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-400 mb-2">2. Tag and Push an Image</h3>
-            <div class="bg-slate-950 border border-slate-800 rounded-lg p-3 relative font-mono text-xs text-slate-300">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">2. Tag & Push an Image</h3>
+              <button @click="copyText('docker tag my-app:latest ' + registryHost + '/my-app:latest\ndocker push ' + registryHost + '/my-app:latest')"
+                      class="text-[11px] text-slate-500 hover:text-indigo-500 flex items-center space-x-1">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                <span>Copy</span>
+              </button>
+            </div>
+            <div class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-3 font-mono text-xs text-slate-800 dark:text-slate-300 overflow-x-auto">
               <pre><code>docker tag my-app:latest <span x-text="registryHost"></span>/my-app:latest
 docker push <span x-text="registryHost"></span>/my-app:latest</code></pre>
             </div>
           </div>
 
-          <!-- 3. GitHub Actions -->
+          <!-- 3. Podman CLI -->
           <div>
-            <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-400 mb-2">3. GitHub Actions Workflow</h3>
-            <div class="bg-slate-950 border border-slate-800 rounded-lg p-3 relative font-mono text-xs text-slate-300">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">3. Podman CLI</h3>
+              <button @click="copyText('podman login ' + registryHost + ' -u admin --password &quot;<YOUR_API_KEY>&quot;')"
+                      class="text-[11px] text-slate-500 hover:text-indigo-500 flex items-center space-x-1">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                <span>Copy</span>
+              </button>
+            </div>
+            <div class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-3 font-mono text-xs text-slate-800 dark:text-slate-300 overflow-x-auto">
+              <pre><code>podman login <span x-text="registryHost"></span> -u admin --password "&lt;YOUR_API_KEY&gt;"</code></pre>
+            </div>
+          </div>
+
+          <!-- 4. Kubernetes Secret -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">4. Kubernetes Secret</h3>
+              <button @click="copyText('kubectl create secret docker-registry zot-regcred --docker-server=' + registryHost + ' --docker-username=admin --docker-password=<YOUR_API_KEY>')"
+                      class="text-[11px] text-slate-500 hover:text-indigo-500 flex items-center space-x-1">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                <span>Copy</span>
+              </button>
+            </div>
+            <div class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-3 font-mono text-xs text-slate-800 dark:text-slate-300 overflow-x-auto">
+              <pre><code>kubectl create secret docker-registry zot-regcred \
+  --docker-server=<span x-text="registryHost"></span> \
+  --docker-username=admin \
+  --docker-password="&lt;YOUR_API_KEY&gt;"</code></pre>
+            </div>
+          </div>
+
+          <!-- 5. GitHub Actions -->
+          <div>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-2">5. GitHub Actions Workflow</h3>
+            <div class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-3 font-mono text-xs text-slate-800 dark:text-slate-300 overflow-x-auto">
               <pre><code>- name: Login to Private Registry
   uses: docker/login-action@v3
   with:
@@ -341,43 +419,43 @@ docker push <span x-text="registryHost"></span>/my-app:latest</code></pre>
   </main>
 
   <!-- MODAL: Issue New Key -->
-  <div x-show="openCreateKeyModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl relative" @click.away="openCreateKeyModal = false">
-      <h3 class="text-base font-bold text-white mb-1">Issue Application API Key</h3>
-      <p class="text-xs text-slate-400 mb-4">Create a scoped credential for a specific service or runner.</p>
+  <div x-show="openCreateKeyModal" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl relative max-h-[90vh] overflow-y-auto" @click.away="openCreateKeyModal = false">
+      <h3 class="text-base font-bold text-slate-900 dark:text-white mb-1">Issue Application API Key</h3>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Create a scoped credential for a specific service or runner.</p>
 
       <form @submit.prevent="submitCreateKey">
         <div class="space-y-4">
           <div>
-            <label class="block text-xs font-medium text-slate-300 mb-1">Application Name / Label *</label>
+            <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Application Name / Label *</label>
             <input type="text" x-model="newKeyForm.label" required placeholder="e.g. pulte-worker, github-ci"
-                   class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                   class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
           </div>
 
           <div>
-            <label class="block text-xs font-medium text-slate-300 mb-1">Permissions (Scopes)</label>
-            <div class="space-y-2 bg-slate-950 border border-slate-800 p-3 rounded-lg text-xs">
-              <label class="flex items-center space-x-2 text-slate-300 cursor-pointer">
-                <input type="checkbox" checked disabled class="rounded border-slate-700 text-indigo-600">
-                <span>Pull Images (<code class="text-indigo-400">read</code>)</span>
+            <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Permissions (Scopes)</label>
+            <div class="space-y-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3 rounded-lg text-xs">
+              <label class="flex items-center space-x-2 text-slate-700 dark:text-slate-300 cursor-pointer">
+                <input type="checkbox" checked disabled class="rounded border-slate-300 dark:border-slate-700 text-indigo-600">
+                <span>Pull Images (<code class="text-indigo-600 dark:text-indigo-400">read</code>)</span>
               </label>
-              <label class="flex items-center space-x-2 text-slate-300 cursor-pointer">
-                <input type="checkbox" x-model="newKeyForm.canPush" class="rounded border-slate-700 text-indigo-600 focus:ring-0">
-                <span>Push & Update Images (<code class="text-emerald-400">create, update</code>)</span>
+              <label class="flex items-center space-x-2 text-slate-700 dark:text-slate-300 cursor-pointer">
+                <input type="checkbox" x-model="newKeyForm.canPush" class="rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-0">
+                <span>Push & Update Images (<code class="text-emerald-600 dark:text-emerald-400">create, update</code>)</span>
               </label>
             </div>
           </div>
 
           <div>
-            <label class="block text-xs font-medium text-slate-300 mb-1">Expiration (Optional)</label>
+            <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Expiration (Optional)</label>
             <input type="date" x-model="newKeyForm.expiry"
-                   class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
-            <span class="text-[10px] text-slate-500 mt-1 block">Leave empty for never-expiring key</span>
+                   class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            <span class="text-[10px] text-slate-400 mt-1 block">Leave empty for never-expiring key</span>
           </div>
 
           <div class="flex justify-end space-x-2 pt-2">
             <button type="button" @click="openCreateKeyModal = false"
-                    class="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition">
+                    class="px-3.5 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs transition">
               Cancel
             </button>
             <button type="submit" :disabled="creatingKey"
@@ -392,36 +470,36 @@ docker push <span x-text="registryHost"></span>/my-app:latest</code></pre>
   </div>
 
   <!-- MODAL: Key Generated Successfully -->
-  <div x-show="openKeySuccessModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl relative">
-      <div class="flex items-center space-x-2 text-emerald-400 mb-2">
-        <i data-lucide="check-circle" class="w-5 h-5"></i>
-        <h3 class="text-base font-bold text-white">API Key Generated!</h3>
+  <div x-show="openKeySuccessModal" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl relative max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center space-x-2 text-emerald-600 dark:text-emerald-400 mb-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" stroke-linejoin="round" d="m9 12 2 2 4-4"/></svg>
+        <h3 class="text-base font-bold text-slate-900 dark:text-white">API Key Generated!</h3>
       </div>
-      <p class="text-xs text-slate-400 mb-4">
+      <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">
         Make sure to copy your API key now. You won't be able to see it again!
       </p>
 
       <div class="space-y-4">
         <div>
-          <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">API Key Token</label>
+          <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">API Key Token</label>
           <div class="flex items-center space-x-2">
             <input type="text" readonly :value="generatedKeyData.apiKey"
-                   class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 font-mono text-xs text-emerald-400 select-all">
+                   class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 font-mono text-xs text-emerald-600 dark:text-emerald-400 select-all">
             <button @click="copyText(generatedKeyData.apiKey)"
-                    class="bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-2 rounded-lg text-xs font-medium text-white transition flex items-center space-x-1">
-              <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                    class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 px-3 py-2 rounded-lg text-xs font-medium text-slate-800 dark:text-white transition flex items-center space-x-1 shrink-0">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
               <span>Copy</span>
             </button>
           </div>
         </div>
 
         <div>
-          <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Docker Login Command</label>
-          <div class="bg-slate-950 border border-slate-800 rounded-lg p-2.5 font-mono text-[11px] text-slate-300 relative group">
+          <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Docker Login Command</label>
+          <div class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg p-2.5 font-mono text-[11px] text-slate-800 dark:text-slate-300 relative group overflow-x-auto">
             <pre><code x-text="'echo \"' + generatedKeyData.apiKey + '\" | docker login ' + registryHost + ' -u admin --password-stdin'"></code></pre>
             <button @click="copyText('echo &quot;' + generatedKeyData.apiKey + '&quot; | docker login ' + registryHost + ' -u admin --password-stdin')"
-                    class="absolute top-2 right-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 px-2 py-1 rounded text-[10px] text-white">
+                    class="mt-2 sm:mt-0 sm:absolute sm:top-2 sm:right-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 px-2 py-1 rounded text-[10px] text-slate-800 dark:text-white">
               Copy Command
             </button>
           </div>
@@ -439,14 +517,15 @@ docker push <span x-text="registryHost"></span>/my-app:latest</code></pre>
 
   <!-- Notification Toast -->
   <div x-show="toast.visible" x-transition
-       class="fixed bottom-4 right-4 z-50 bg-slate-900 border border-slate-700 text-white text-xs px-4 py-2.5 rounded-xl shadow-xl flex items-center space-x-2">
-    <i data-lucide="info" class="w-4 h-4 text-indigo-400"></i>
+       class="fixed bottom-4 right-4 z-50 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs px-4 py-2.5 rounded-xl shadow-xl flex items-center space-x-2">
+    <svg class="w-4 h-4 text-indigo-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
     <span x-text="toast.message"></span>
   </div>
 
   <script>
     function zotdeckApp() {
       return {
+        theme: localStorage.getItem('zotdeck_theme') || 'dark',
         authenticated: false,
         currentUser: 'admin',
         registryHost: 'registry.mokshlabs.ai',
@@ -466,22 +545,36 @@ docker push <span x-text="registryHost"></span>/my-app:latest</code></pre>
         generatedKeyData: { apiKey: '', label: '' },
 
         repositories: [],
+        repoSearch: '',
         loadingRepos: false,
 
         toast: { visible: false, message: '' },
 
         async initApp() {
+          this.applyTheme(this.theme);
           await this.checkAuth();
           if (this.authenticated) {
             await Promise.all([this.loadKeys(), this.loadRepositories()]);
           }
-          this.$nextTick(() => lucide.createIcons());
+        },
+
+        toggleTheme() {
+          this.theme = this.theme === 'dark' ? 'light' : 'dark';
+          localStorage.setItem('zotdeck_theme', this.theme);
+          this.applyTheme(this.theme);
+        },
+
+        applyTheme(mode) {
+          if (mode === 'dark') {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
         },
 
         showToast(msg) {
           this.toast.message = msg;
           this.toast.visible = true;
-          this.$nextTick(() => lucide.createIcons());
           setTimeout(() => this.toast.visible = false, 3000);
         },
 
@@ -521,7 +614,6 @@ docker push <span x-text="registryHost"></span>/my-app:latest</code></pre>
             this.loginError = 'Failed to connect to backend';
           } finally {
             this.loggingIn = false;
-            this.$nextTick(() => lucide.createIcons());
           }
         },
 
@@ -530,7 +622,6 @@ docker push <span x-text="registryHost"></span>/my-app:latest</code></pre>
           this.authenticated = false;
           this.keys = [];
           this.repositories = [];
-          this.$nextTick(() => lucide.createIcons());
         },
 
         async loadKeys() {
@@ -543,13 +634,17 @@ docker push <span x-text="registryHost"></span>/my-app:latest</code></pre>
             }
           } finally {
             this.loadingKeys = false;
-            this.$nextTick(() => lucide.createIcons());
           }
         },
 
         get filteredKeys() {
           if (!this.keySearch) return this.keys;
           return this.keys.filter(k => k.label.toLowerCase().includes(this.keySearch.toLowerCase()));
+        },
+
+        get filteredRepositories() {
+          if (!this.repoSearch) return this.repositories;
+          return this.repositories.filter(r => r.name.toLowerCase().includes(this.repoSearch.toLowerCase()));
         },
 
         async submitCreateKey() {
@@ -583,7 +678,6 @@ docker push <span x-text="registryHost"></span>/my-app:latest</code></pre>
             }
           } finally {
             this.creatingKey = false;
-            this.$nextTick(() => lucide.createIcons());
           }
         },
 
@@ -610,7 +704,6 @@ docker push <span x-text="registryHost"></span>/my-app:latest</code></pre>
             }
           } finally {
             this.loadingRepos = false;
-            this.$nextTick(() => lucide.createIcons());
           }
         },
 
