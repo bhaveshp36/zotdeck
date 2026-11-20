@@ -312,14 +312,19 @@
       <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shadow-sm">
         <div>
           <h2 class="text-lg font-bold text-slate-900 dark:text-white">Container Image Catalog</h2>
-          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Explore stored OCI images, inspect layer breakdown, and clean up manifests.</p>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Explore stored OCI images, promote tags, inspect layer breakdowns, and clean up manifests.</p>
         </div>
-        <div class="flex items-center space-x-3">
-          <div class="relative w-full sm:w-64">
+        <div class="flex items-center space-x-2.5">
+          <div class="relative w-full sm:w-60">
             <svg class="w-4 h-4 absolute left-3 top-2.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input type="text" x-model="repoSearch" placeholder="Filter repositories..."
                    class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
           </div>
+          <button @click="openCreateRepoModal = true"
+                  class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-medium transition shadow-sm flex items-center space-x-1.5 shrink-0">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span>Create Repo</span>
+          </button>
           <button @click="loadRepositories" class="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition shrink-0" title="Refresh">
             <svg class="w-4 h-4" :class="loadingRepos ? 'animate-spin' : ''" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
           </button>
@@ -335,7 +340,11 @@
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path stroke-linecap="round" stroke-linejoin="round" d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg>
                 </div>
                 <div>
-                  <h3 class="text-sm font-bold text-slate-900 dark:text-white font-mono break-all" x-text="r.name"></h3>
+                  <div class="flex items-center space-x-2">
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-white font-mono break-all" x-text="r.name"></h3>
+                    <span x-show="r.status === 'awaiting_push'" class="bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[10px] px-2 py-0.5 rounded font-medium">Awaiting First Push</span>
+                  </div>
+                  <p x-show="r.description" class="text-xs text-slate-600 dark:text-slate-400 mt-0.5" x-text="r.description"></p>
                   <p class="text-xs text-slate-500 dark:text-slate-400" x-text="r.tag_count + ' tags available'"></p>
                 </div>
               </div>
@@ -345,26 +354,37 @@
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
                   <span>Copy Pull</span>
                 </button>
+                <button @click="confirmDeleteRepository(r.name)" title="Delete entire repository"
+                        class="p-1.5 text-slate-400 hover:text-red-500 dark:hover:text-red-400 border border-transparent hover:border-red-500/20 rounded-lg transition">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2m-6 5v6m4-6v6"/></svg>
+                </button>
               </div>
             </div>
 
             <!-- Tags List -->
             <div class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-lg p-3">
-              <div class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Available Tags (Click tag to inspect layers)</div>
+              <div class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Available Tags (Click to inspect layers, or retag/promote)</div>
               <div class="flex flex-wrap gap-2">
                 <template x-for="tag in r.tags" :key="tag">
-                  <div class="flex items-center space-x-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 pl-3 pr-2 py-1 rounded-lg text-xs font-mono text-slate-700 dark:text-slate-300 shadow-sm">
+                  <div class="flex items-center space-x-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 pl-3 pr-2 py-1 rounded-lg text-xs font-mono text-slate-700 dark:text-slate-300 shadow-sm">
                     <button @click="inspectTag(r.name, tag)" class="hover:text-indigo-600 dark:hover:text-indigo-400 font-medium flex items-center space-x-1" title="Inspect image layers">
                       <span x-text="tag"></span>
                       <svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
                     </button>
+                    <button @click="openRetagModalFor(r.name, tag)" title="Promote / Retag tag"
+                            class="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition ml-0.5 p-0.5 rounded">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 0 1 0 2.828l-7 7a2 2 0 0 1-2.828 0l-7-7A1.994 1.994 0 0 1 3 12V7a4 4 0 0 1 4-4z"/></svg>
+                    </button>
                     <button @click="confirmDeleteTag(r.name, tag)" title="Delete tag"
-                            class="text-slate-400 hover:text-red-500 transition ml-1 p-0.5 rounded">
+                            class="text-slate-400 hover:text-red-500 transition p-0.5 rounded">
                       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2m-6 5v6m4-6v6"/></svg>
                     </button>
                   </div>
                 </template>
-                <span x-show="r.tags.length === 0" class="text-xs text-slate-400 italic">No tags pushed yet</span>
+                <div x-show="r.tags.length === 0" class="text-xs text-slate-400 italic flex items-center space-x-2">
+                  <span>No tags pushed yet.</span>
+                  <span class="font-mono text-[11px] bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded" x-text="'docker push ' + registryHost + '/' + r.name + ':latest'"></span>
+                </div>
               </div>
             </div>
           </div>
@@ -639,9 +659,16 @@ build_image:
           </div>
           <p class="text-xs text-slate-400 mt-0.5 font-mono" x-text="inspectData.short_digest"></p>
         </div>
-        <button @click="openInspectorModal = false" class="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
+        <div class="flex items-center space-x-2">
+          <button @click="openRetagModalFor(inspectData.repo, inspectData.tag)"
+                  class="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-medium transition flex items-center space-x-1 shadow-sm">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 0 1 0 2.828l-7 7a2 2 0 0 1-2.828 0l-7-7A1.994 1.994 0 0 1 3 12V7a4 4 0 0 1 4-4z"/></svg>
+            <span>Promote Tag</span>
+          </button>
+          <button @click="openInspectorModal = false" class="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
       </div>
 
       <!-- Stats Bar -->
@@ -786,10 +813,49 @@ build_image:
           </div>
 
           <div>
-            <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Expiration (Optional)</label>
-            <input type="date" x-model="newKeyForm.expiry"
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="block text-xs font-medium text-slate-700 dark:text-slate-300">Expiration (Optional)</label>
+              <span x-show="newKeyForm.expiry" class="text-[10px] text-indigo-600 dark:text-indigo-400 font-mono" x-text="'Expires: ' + newKeyForm.expiry"></span>
+            </div>
+
+            <!-- Quick Expiration Presets -->
+            <div class="grid grid-cols-3 sm:grid-cols-6 gap-1.5 mb-2 text-[11px]">
+              <button type="button" @click="setKeyExpiryDays(30)"
+                      :class="expiryDaysSelected === 30 ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'"
+                      class="px-2 py-1 rounded-lg border font-medium text-center transition">
+                30 Days
+              </button>
+              <button type="button" @click="setKeyExpiryDays(90)"
+                      :class="expiryDaysSelected === 90 ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'"
+                      class="px-2 py-1 rounded-lg border font-medium text-center transition">
+                90 Days
+              </button>
+              <button type="button" @click="setKeyExpiryDays(180)"
+                      :class="expiryDaysSelected === 180 ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'"
+                      class="px-2 py-1 rounded-lg border font-medium text-center transition">
+                180 Days
+              </button>
+              <button type="button" @click="setKeyExpiryDays(365)"
+                      :class="expiryDaysSelected === 365 ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'"
+                      class="px-2 py-1 rounded-lg border font-medium text-center transition">
+                365 Days
+              </button>
+              <button type="button" @click="setKeyExpiryDays(730)"
+                      :class="expiryDaysSelected === 730 ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'"
+                      class="px-2 py-1 rounded-lg border font-medium text-center transition">
+                2 Years
+              </button>
+              <button type="button" @click="setKeyExpiryDays(0)"
+                      :class="expiryDaysSelected === 0 ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'"
+                      class="px-2 py-1 rounded-lg border font-medium text-center transition">
+                Never
+              </button>
+            </div>
+
+            <!-- Custom Calendar Picker -->
+            <input type="date" x-model="newKeyForm.expiry" @change="expiryDaysSelected = null"
                    class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
-            <span class="text-[10px] text-slate-400 mt-1 block">Leave empty for never-expiring key</span>
+            <span class="text-[10px] text-slate-400 mt-1 block">Select a preset or pick a custom date from the calendar.</span>
           </div>
 
           <div class="flex justify-end space-x-2 pt-2">
@@ -854,6 +920,127 @@ build_image:
     </div>
   </div>
 
+  <!-- MODAL: Create Repository -->
+  <div x-show="openCreateRepoModal" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl relative max-h-[90vh] overflow-y-auto" @click.away="openCreateRepoModal = false">
+      <h3 class="text-base font-bold text-slate-900 dark:text-white mb-1">Create Container Repository</h3>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Pre-register an image repository name and generate immediate push instructions.</p>
+
+      <form @submit.prevent="submitCreateRepo">
+        <div x-show="createRepoError" class="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-600 dark:text-red-400 text-xs flex items-center space-x-2">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span x-text="createRepoError"></span>
+        </div>
+
+        <div class="space-y-3.5">
+          <div>
+            <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Repository Name *</label>
+            <input type="text" x-model="newRepoForm.name" required placeholder="e.g. apps/backend or microservice-auth"
+                   class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            <span class="text-[10px] text-slate-400 mt-1 block">Lowercase alphanumeric characters, slashes, dashes, and dots.</span>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Description (Optional)</label>
+            <input type="text" x-model="newRepoForm.description" placeholder="e.g. Core REST API service for production"
+                   class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+          </div>
+
+          <div class="flex justify-end space-x-2 pt-2">
+            <button type="button" @click="openCreateRepoModal = false"
+                    class="px-3.5 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs transition">
+              Cancel
+            </button>
+            <button type="submit" :disabled="creatingRepo"
+                    class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs shadow-md transition disabled:opacity-50 flex items-center space-x-1.5">
+              <span x-show="!creatingRepo">Initialize Repository</span>
+              <span x-show="creatingRepo">Creating...</span>
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Repository Initialized Success -->
+  <div x-show="openRepoCreatedModal" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl relative max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center space-x-2 text-emerald-600 dark:text-emerald-400 mb-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" stroke-linejoin="round" d="m9 12 2 2 4-4"/></svg>
+        <h3 class="text-base font-bold text-slate-900 dark:text-white">Repository Initialized!</h3>
+      </div>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">
+        Repository <code class="text-indigo-600 dark:text-indigo-400 font-bold" x-text="repoCreatedData.name"></code> is registered. Push an image using Docker or Podman:
+      </p>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Docker Tag & Push Commands</label>
+          <div class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg p-2.5 font-mono text-[11px] text-slate-800 dark:text-slate-300 relative group overflow-x-auto">
+            <pre><code x-text="repoCreatedData.push_instructions"></code></pre>
+            <button @click="copyText(repoCreatedData.push_instructions)"
+                    class="mt-2 sm:mt-0 sm:absolute sm:top-2 sm:right-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 px-2 py-1 rounded text-[10px] text-slate-800 dark:text-white">
+              Copy Commands
+            </button>
+          </div>
+        </div>
+
+        <div class="flex justify-end pt-2">
+          <button @click="openRepoCreatedModal = false"
+                  class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-medium transition">
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Promote / Retag Image Tag -->
+  <div x-show="openRetagModal" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl relative max-h-[90vh] overflow-y-auto" @click.away="openRetagModal = false">
+      <div class="flex items-center space-x-2 text-indigo-600 dark:text-indigo-400 mb-1">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 0 1 0 2.828l-7 7a2 2 0 0 1-2.828 0l-7-7A1.994 1.994 0 0 1 3 12V7a4 4 0 0 1 4-4z"/></svg>
+        <h3 class="text-base font-bold text-slate-900 dark:text-white">Promote / Retag Image</h3>
+      </div>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">
+        Instantly create a new tag pointing to the exact same manifest digest without re-uploading any layers.
+      </p>
+
+      <form @submit.prevent="submitRetag">
+        <div x-show="retagError" class="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-600 dark:text-red-400 text-xs flex items-center space-x-2">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span x-text="retagError"></span>
+        </div>
+
+        <div class="space-y-3.5">
+          <div class="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs space-y-1">
+            <div class="text-slate-400 uppercase text-[10px] font-semibold">Source Image</div>
+            <div class="font-mono font-bold text-slate-800 dark:text-slate-200" x-text="retagForm.repo + ':' + retagForm.sourceTag"></div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">New Target Tag *</label>
+            <input type="text" x-model="retagForm.targetTag" required placeholder="e.g. latest, staging-stable, or v1.0.0"
+                   class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            <span class="text-[10px] text-slate-400 mt-1 block">New tag will be available for pulling immediately.</span>
+          </div>
+
+          <div class="flex justify-end space-x-2 pt-2">
+            <button type="button" @click="openRetagModal = false"
+                    class="px-3.5 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs transition">
+              Cancel
+            </button>
+            <button type="submit" :disabled="retagging"
+                    class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs shadow-md transition disabled:opacity-50 flex items-center space-x-1.5">
+              <span x-show="!retagging">Promote Tag</span>
+              <span x-show="retagging">Retagging...</span>
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Notification Toast -->
   <div x-show="toast.visible" x-transition
        class="fixed bottom-4 right-4 z-50 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs px-4 py-2.5 rounded-xl shadow-xl flex items-center space-x-2">
@@ -888,6 +1075,7 @@ build_image:
         loadingKeys: false,
         openCreateKeyModal: false,
         creatingKey: false,
+        expiryDaysSelected: null,
         newKeyForm: { label: '', canPush: true, expiry: '' },
         openKeySuccessModal: false,
         generatedKeyData: { apiKey: '', label: '' },
@@ -896,6 +1084,16 @@ build_image:
         repositories: [],
         repoSearch: '',
         loadingRepos: false,
+        openCreateRepoModal: false,
+        creatingRepo: false,
+        createRepoError: '',
+        newRepoForm: { name: '', description: '' },
+        openRepoCreatedModal: false,
+        repoCreatedData: { name: '', push_instructions: '' },
+        openRetagModal: false,
+        retagging: false,
+        retagError: '',
+        retagForm: { repo: '', sourceTag: '', targetTag: '' },
         openInspectorModal: false,
         inspectData: {},
 
@@ -1060,6 +1258,20 @@ build_image:
           return this.repositories.filter(r => r.name.toLowerCase().includes(this.repoSearch.toLowerCase()));
         },
 
+        setKeyExpiryDays(days) {
+          this.expiryDaysSelected = days;
+          if (days === 0) {
+            this.newKeyForm.expiry = '';
+            return;
+          }
+          const d = new Date();
+          d.setDate(d.getDate() + days);
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
+          const dd = String(d.getDate()).padStart(2, '0');
+          this.newKeyForm.expiry = `${yyyy}-${mm}-${dd}`;
+        },
+
         async submitCreateKey() {
           this.creatingKey = true;
           try {
@@ -1085,6 +1297,7 @@ build_image:
               this.generatedKeyData = data;
               this.openKeySuccessModal = true;
               this.newKeyForm = { label: '', canPush: true, expiry: '' };
+              this.expiryDaysSelected = null;
               await this.loadKeys();
             } else {
               alert('Failed to issue key');
@@ -1144,6 +1357,95 @@ build_image:
             await this.loadRepositories();
           } else {
             alert('Failed to delete tag');
+          }
+        },
+
+        async submitCreateRepo() {
+          this.creatingRepo = true;
+          this.createRepoError = '';
+          try {
+            const res = await fetch('/api/repositories', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(this.newRepoForm)
+            });
+            if (res.ok) {
+              const data = await res.json();
+              this.repoCreatedData = data;
+              this.openCreateRepoModal = false;
+              this.openRepoCreatedModal = true;
+              this.newRepoForm = { name: '', description: '' };
+              this.showToast(`Repository '${data.name}' initialized`);
+              await this.loadRepositories();
+            } else {
+              const err = await res.json();
+              this.createRepoError = err.detail || 'Failed to create repository';
+            }
+          } catch (e) {
+            this.createRepoError = 'Network error creating repository';
+          } finally {
+            this.creatingRepo = false;
+          }
+        },
+
+        async confirmDeleteRepository(repoName) {
+          if (!confirm(`Are you sure you want to permanently delete repository '${repoName}' and ALL its associated tags and manifests? This action cannot be undone.`)) {
+            return;
+          }
+          try {
+            const res = await fetch(`/api/repositories/${encodeURIComponent(repoName)}`, {
+              method: 'DELETE'
+            });
+            if (res.ok) {
+              this.showToast(`Deleted repository '${repoName}'`);
+              await this.loadRepositories();
+            } else {
+              const err = await res.json();
+              alert(err.detail || `Failed to delete repository '${repoName}'`);
+            }
+          } catch {
+            alert('Network error while deleting repository');
+          }
+        },
+
+        openRetagModalFor(repo, sourceTag) {
+          this.retagForm = { repo: repo, sourceTag: sourceTag, targetTag: '' };
+          this.retagError = '';
+          this.openRetagModal = true;
+        },
+
+        async submitRetag() {
+          if (!this.retagForm.targetTag.trim()) {
+            this.retagError = 'Please specify a target tag name';
+            return;
+          }
+          this.retagging = true;
+          this.retagError = '';
+          try {
+            const res = await fetch(`/api/repositories/${encodeURIComponent(this.retagForm.repo)}/retag`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                source_tag: this.retagForm.sourceTag,
+                target_tag: this.retagForm.targetTag
+              })
+            });
+            if (res.ok) {
+              const data = await res.json();
+              this.showToast(`Promoted '${data.repo}:${data.source_tag}' to '${data.target_tag}'`);
+              this.openRetagModal = false;
+              await this.loadRepositories();
+              if (this.openInspectorModal && this.inspectData.repo === this.retagForm.repo) {
+                await this.inspectTag(this.retagForm.repo, this.retagForm.targetTag);
+              }
+            } else {
+              const err = await res.json();
+              this.retagError = err.detail || 'Failed to retag manifest';
+            }
+          } catch (e) {
+            this.retagError = 'Network error while promoting tag';
+          } finally {
+            this.retagging = false;
           }
         },
 

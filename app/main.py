@@ -101,6 +101,16 @@ class AddRegistryRequest(BaseModel):
     username: Optional[str] = None
     password: Optional[str] = None
 
+class CreateRepoRequest(BaseModel):
+    name: str
+    description: Optional[str] = ""
+
+class RetagRequest(BaseModel):
+    source_tag: str
+    target_tag: str
+
+registered_repositories: Dict[str, Dict[str, Any]] = {}
+
 def get_auth_token(request: Request) -> str:
     auth_header = request.headers.get("Authorization")
     if auth_header and auth_header.startswith("Basic "):
@@ -271,18 +281,72 @@ async def revoke_key(key_uuid: str, token: str = Depends(get_auth_token)):
     except PermissionError:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
+import re
+
 # --- Repositories, Layers, Storage & Audit ---
+
+REPO_NAME_REGEX = re.compile(r"^[a-z0-9]+(?:[._-][a-z0-9]+)*(?:/[a-z0-9]+(?:[._-][a-z0-9]+)*)*$")
 
 @app.get("/api/repositories")
 async def list_repositories(token: str = Depends(get_auth_token)):
     client = get_zot_client()
     effective_token = get_effective_token(token)
     try:
-        repos = await client.list_repositories(effective_token)
-        return {"repositories": repos}
+        actual_repos = await client.list_repositories(effective_token)
+        actual_names = {r["name"] for r in actual_repos}
+
+        # Enrich actual repos with registered descriptions
+        for r in actual_repos:
+            repo_name = r["name"]
+            if repo_name in registered_repositories:
+                r["description"] = registered_repositories[repo_name].get("description", "")
+                r["status"] = "active"
+
+        # Include registered repos awaiting first push
+        for name, meta in registered_repositories.items():
+            if name not in actual_names:
+                actual_repos.append({
+                    "name": name,
+                    "tag_count": 0,
+                    "tags": [],
+                    "description": meta.get("description", ""),
+                    "status": "awaiting_push",
+                    "pull_command": f"docker pull {client.public_url}/{name}:latest"
+                })
+
+        return {"repositories": actual_repos}
     except Exception as e:
         logger.error(f"Error fetching repositories: {e}")
         return {"repositories": []}
+
+@app.post("/api/repositories")
+async def create_repository(req: CreateRepoRequest, token: str = Depends(get_auth_token)):
+    client = get_zot_client()
+    repo_name = req.name.strip().lower()
+    if not REPO_NAME_REGEX.match(repo_name):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid repository name format. Use lowercase alphanumeric characters, dots, dashes, underscores, and slashes (e.g. 'my-app' or 'team/api-service')."
+        )
+
+    registered_repositories[repo_name] = {
+        "name": repo_name,
+        "description": req.description.strip() if req.description else "",
+        "created_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+    }
+    audit.log("REPO_CREATE", f"Created repository '{repo_name}'")
+
+    push_sample = (
+        f"docker tag <image> {client.public_url}/{repo_name}:latest\n"
+        f"docker push {client.public_url}/{repo_name}:latest"
+    )
+
+    return {
+        "status": "created",
+        "name": repo_name,
+        "description": registered_repositories[repo_name]["description"],
+        "push_instructions": push_sample
+    }
 
 @app.get("/api/repositories/{repo:path}/tags/{tag}")
 async def get_tag_info(repo: str, tag: str, token: str = Depends(get_auth_token)):
@@ -293,6 +357,27 @@ async def get_tag_info(repo: str, tag: str, token: str = Depends(get_auth_token)
         raise HTTPException(status_code=404, detail="Tag not found")
     return details
 
+@app.post("/api/repositories/{repo:path}/retag")
+async def retag_repository_tag(repo: str, req: RetagRequest, token: str = Depends(get_auth_token)):
+    client = get_zot_client()
+    effective_token = get_effective_token(token)
+    source_tag = req.source_tag.strip()
+    target_tag = req.target_tag.strip()
+
+    if not source_tag or not target_tag:
+        raise HTTPException(status_code=400, detail="Source tag and target tag are required.")
+
+    success = await client.retag_image(effective_token, repo, source_tag, target_tag)
+    if success:
+        audit.log("TAG_RETAG", f"Promoted '{repo}:{source_tag}' to tag '{target_tag}'")
+        return {
+            "status": "retagged",
+            "repo": repo,
+            "source_tag": source_tag,
+            "target_tag": target_tag
+        }
+    raise HTTPException(status_code=400, detail=f"Failed to retag '{repo}:{source_tag}' to '{target_tag}'. Verify source tag exists.")
+
 @app.delete("/api/repositories/{repo:path}/tags/{tag}")
 async def delete_image_tag(repo: str, tag: str, token: str = Depends(get_auth_token)):
     client = get_zot_client()
@@ -302,6 +387,24 @@ async def delete_image_tag(repo: str, tag: str, token: str = Depends(get_auth_to
         audit.log("TAG_DELETE", f"Deleted tag '{repo}:{tag}'")
         return {"status": "deleted", "repo": repo, "tag": tag}
     raise HTTPException(status_code=400, detail="Failed to delete tag from registry")
+
+@app.delete("/api/repositories/{repo:path}")
+async def delete_entire_repository(repo: str, token: str = Depends(get_auth_token)):
+    client = get_zot_client()
+    effective_token = get_effective_token(token)
+    try:
+        success = await client.delete_repository(effective_token, repo)
+        if repo in registered_repositories:
+            del registered_repositories[repo]
+        if success:
+            audit.log("REPO_DELETE", f"Deleted entire repository '{repo}'")
+            return {"status": "deleted", "repo": repo}
+        raise HTTPException(status_code=400, detail="Failed to delete repository from registry")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting repository {repo}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/storage")
 async def storage_summary(token: str = Depends(get_auth_token)):

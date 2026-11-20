@@ -212,15 +212,65 @@ class ZotClient:
             "formatted_size": format_bytes(total_bytes)
         }
 
-    async def delete_tag(self, auth_token: str, repo: str, tag_or_digest: str) -> bool:
-        digest = tag_or_digest
-        if not tag_or_digest.startswith("sha256:"):
-            details = await self.get_tag_manifest(auth_token, repo, tag_or_digest)
-            digest = details.get("digest")
-            if not digest:
+    async def retag_image(self, auth_token: str, repo: str, source_tag: str, target_tag: str) -> bool:
+        """Promotes or retags an image tag to a new target tag without pulling or pushing layers."""
+        headers = self._get_auth_header(auth_token)
+        headers["Accept"] = (
+            "application/vnd.docker.distribution.manifest.v2+json, "
+            "application/vnd.oci.image.manifest.v1+json, "
+            "application/vnd.docker.distribution.manifest.list.v2+json, "
+            "application/vnd.oci.image.index.v1+json"
+        )
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            get_resp = await client.get(f"{self.base_url}/v2/{repo}/manifests/{source_tag}", headers=headers)
+            if get_resp.status_code != 200:
+                logger.error(f"Failed to fetch source manifest for retag: {get_resp.status_code} {get_resp.text}")
                 return False
 
+            content_type = get_resp.headers.get("Content-Type") or "application/vnd.docker.distribution.manifest.v2+json"
+            manifest_content = get_resp.content
+
+            put_headers = self._get_auth_header(auth_token)
+            put_headers["Content-Type"] = content_type
+            put_resp = await client.put(
+                f"{self.base_url}/v2/{repo}/manifests/{target_tag}",
+                headers=put_headers,
+                content=manifest_content
+            )
+            return put_resp.status_code in (200, 201)
+
+    async def delete_repository(self, auth_token: str, repo: str) -> bool:
+        """Deletes all image tags and manifests associated with a repository."""
+        headers = self._get_auth_header(auth_token)
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            tags_resp = await client.get(f"{self.base_url}/v2/{repo}/tags/list", headers=headers)
+            if tags_resp.status_code == 404:
+                return True
+            if tags_resp.status_code != 200:
+                return False
+
+            tags = tags_resp.json().get("tags", []) or []
+            all_deleted = True
+            for tag in tags:
+                del_ok = await self.delete_tag(auth_token, repo, tag)
+                if not del_ok:
+                    all_deleted = False
+            return all_deleted
+
+    async def delete_tag(self, auth_token: str, repo: str, tag_or_digest: str) -> bool:
         headers = self._get_auth_header(auth_token)
         async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.delete(f"{self.base_url}/v2/{repo}/manifests/{digest}", headers=headers)
-            return resp.status_code in (200, 202, 204)
+            # First attempt: direct tag deletion (Zot OCI extension: deletes only this tag pointer)
+            resp = await client.delete(f"{self.base_url}/v2/{repo}/manifests/{tag_or_digest}", headers=headers)
+            if resp.status_code in (200, 202, 204):
+                return True
+
+            # Fallback for strict OCI v2 registries: resolve digest and delete manifest
+            if not tag_or_digest.startswith("sha256:"):
+                details = await self.get_tag_manifest(auth_token, repo, tag_or_digest)
+                digest = details.get("digest")
+                if digest:
+                    digest_resp = await client.delete(f"{self.base_url}/v2/{repo}/manifests/{digest}", headers=headers)
+                    return digest_resp.status_code in (200, 202, 204)
+
+            return False
