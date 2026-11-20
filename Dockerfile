@@ -1,7 +1,7 @@
 # ==============================================================================
 # ZotDeck - The Lightweight Web Dashboard for Zot OCI Registry
 # ==============================================================================
-FROM python:3.11-alpine
+FROM python:3.15-alpine
 
 # Set environment
 ENV PYTHONDONTWRITEBYTECODE=1 \
