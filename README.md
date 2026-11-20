@@ -1,89 +1,64 @@
 # ZotDeck 🚢
 
 > **Ultra-lightweight Web Dashboard, Scoped Credential Manager, and OCI Image Catalog for Zot Registry.**  
-> Single container • Under **45 MiB RAM** • Zero external database required.
+> Single container • Under **40 MiB RAM** • Zero external database required • 100% OCI Distribution Spec compliant.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python: 3.11](https://img.shields.io/badge/Python-3.11-blue.svg)](https://www.python.org/)
-[![Memory: <45MB](https://img.shields.io/badge/RAM-~40MiB-emerald.svg)](#performance--footprint)
+[![Memory: <40MB](https://img.shields.io/badge/RAM-~40MiB-emerald.svg)](#-performance--resource-footprint)
 [![OCI: Distribution Spec](https://img.shields.io/badge/OCI-Distribution%20Spec-indigo.svg)](https://opencontainers.org/)
+[![Docker Pulls](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](#-quickstart)
 
 ---
 
-## 💡 Why ZotDeck?
+## 💡 What is ZotDeck?
 
-Modern cloud-native pipelines need private, fast, and secure container image registries. While enterprise registries like Harbor require substantial infrastructure (~1.5 GB RAM, external databases, and multiple background services), **Zot** provides an OCI-native, high-performance registry in a single binary (~48 MiB RAM).
+**ZotDeck** is an open-source, resource-efficient web dashboard and credential gateway designed specifically for the [Zot OCI Container Registry](https://github.com/project-zot/zot). 
 
-**ZotDeck** completes the picture: a web dashboard and credential gateway tailored for Zot:
-- **Footprint**: Runs under **45 MiB RAM** in a single Alpine container.
-- **Security-First**: Generates scoped, revocable application API keys (`read`, `create`) so you never expose master passwords to CI/CD runners.
-- **OCI-Native Speed**: Performs 1-click tag promotions and retagging in under 20ms using pure manifest aliasing without layer re-uploads.
+While enterprise registries like CNCF Harbor deliver powerful features, they often require substantial infrastructure—demanding 1.5+ GB RAM, PostgreSQL, Redis, and 6 to 9 interdependent microservice containers. For homelabs, edge nodes, small teams, and lightweight Kubernetes clusters, this overhead is excessive.
+
+**Zot + ZotDeck** provides a complete, modern container registry solution running in under **90 MiB RAM combined** (Zot ~48 MiB + ZotDeck ~40 MiB), without sacrificing security or developer experience.
 
 ---
 
-## ✨ Features
+## ⚡ Key Features at a Glance
 
-### 🔑 Scoped Credential Hub
-- Issue scoped API keys (`read` for pulling, `create/update` for pushing).
-- Configure optional key expiration dates.
-- Generate one-click `docker login` snippets for deployment scripts.
-- Instant 1-click credential revocation to invalidate compromised tokens immediately.
+| Feature | Description |
+| :--- | :--- |
+| **🔑 Scoped Credential Hub** | Issue and revoke granular API tokens (`read`, `create`, `update`) with customizable expiration presets (30d, 90d, 180d, 1y, 2y) so master passwords are never exposed to CI/CD runners. |
+| **📦 Image Catalog & Layer Inspector** | Search repositories, view all tags/versions, inspect compressed layer sizes, content digests, target OS/architecture (`linux/amd64`, `linux/arm64`), and Docker build history. |
+| **🏷️ Instant Zero-Transfer Retagging** | Promote image tags (e.g. promoting `commit-sha` $\rightarrow$ `staging` $\rightarrow$ `latest`) in under 20ms using pure OCI manifest aliasing without downloading or re-uploading layers. |
+| **📁 Repository Lifecycle Management** | Pre-register repository namespaces with custom descriptions before pushing images, and delete repositories or individual tags with safety confirmations. |
+| **🌐 Multi-Registry Connection Switcher** | Manage local, staging, and remote Zot instances from a unified interface with per-registry credentials and connection verification. |
+| **🌓 Dual Light & Dark Themes** | Responsive modern UI built with Tailwind CSS, system theme detection, `localStorage` persistence, and pure inline SVGs (zero external icon CDN dependencies). |
+| **💻 Multi-Platform Code Generator** | Copy-paste deployment snippets for Docker CLI, Podman, Kubernetes `imagePullSecrets`, Helm OCI, GitHub Actions, and GitLab CI. |
+| **🛡️ Real-Time Security Audit Log** | In-memory activity stream tracking logins, API key creation/revocation, tag promotions, and deletions. |
+| **🧹 Deduplication & Storage Health** | Calculates deduplicated layer footprints across content-addressable storage blobs and triggers on-demand garbage collection sweeps. |
+| **📖 OpenAPI / Swagger Documentation** | Interactive REST API documentation available out of the box at `/docs`. |
 
-### 📦 Image Catalog & Layer Inspector
-- Explore all repositories, tags, and digests stored in the registry.
-- Inspect individual OCI image layers, compressed sizes, and media types.
-- View target architecture (`linux/amd64`, `linux/arm64`) and Docker build command history.
-- Pre-register new repository namespaces with custom descriptions before pushing images.
+---
 
-### 🏷️ 1-Click Zero-Transfer Tag Promotion
-- Promote image tags (e.g. promoting `commit-sha` to `staging` or `latest`) in under 20ms.
-- Implements standard OCI manifest retrieval and publication—no downloading or re-uploading layer blobs.
+## 📊 Comparison: ZotDeck vs Harbor vs Alternatives
 
-### 🌐 Multi-Registry Connection Switcher
-- Connect multiple internal, staging, and production Zot registries within a single interface.
-- Support for per-registry authentication tokens with credential masking.
-- Pre-flight endpoint and credential validation.
-
-### 🌓 Dual Light & Dark Theme
-- Responsive UI built with Tailwind CSS.
-- Persistent theme preference via `localStorage`.
-- Pure inline SVGs for zero external icon CDN dependencies.
-
-### 💻 Multi-Platform Integration Code Generator
-Interactive deployment snippets pre-populated with your registry domain:
-- **Docker CLI**: Login, tag, and push commands.
-- **Podman**: Rootless container workflows.
-- **Kubernetes**: Ready-to-apply `kubectl create secret docker-registry` commands.
-- **Helm OCI**: Chart package and push instructions.
-- **GitHub Actions**: Copy-paste CI workflow blocks using encrypted secrets.
-- **GitLab CI**: Production `.gitlab-ci.yml` pipeline stages.
-
-### 🛡️ Real-Time Audit Log & Maintenance
-- In-memory activity stream recording user logins, key creation, revocations, and tag deletions.
-- Storage analytics: Calculates deduplicated layer footprints across content-addressable blobs.
-- 1-click registry garbage collection triggers.
-
-### 📖 Interactive OpenAPI Swagger Documentation
-- Fully documented REST API available at `/docs` (Swagger UI) and `/redoc`.
+| Capability / Metric | ZotDeck + Zot | CNCF Harbor | Docker Registry UI | Portus |
+| :--- | :--- | :--- | :--- | :--- |
+| **Idle Memory (RAM)** | **~88 MiB total** (48M + 40M) | ~1,500 MiB - 2,000 MiB | ~60 MiB | ~600 MiB |
+| **Container Count** | **2 containers** (Registry + UI) | 6 to 9 containers | 1 UI container | 4+ containers |
+| **External Database** | **None (Zero DB)** | PostgreSQL required | None | MariaDB / MySQL |
+| **Cache / Queue Engine** | **None** | Redis required | None | Background workers |
+| **Startup Time** | **< 1.0 second** | 45 - 90 seconds | ~3 seconds | ~30 seconds |
+| **Scoped API Key Generation**| **Yes (`read`, `create`)** | Robot Accounts | No (Basic auth only) | App Tokens |
+| **Instant Manifest Retagging**| **Yes (< 20ms OCI PUT)** | Manual replication | No (Requires pull/push)| No |
+| **Multi-Registry Switcher** | **Built-in** | Replication endpoints | No | No |
+| **Light & Dark Theme** | **Yes (Tailwind CSS)** | Partial | Dark mode only | Light only |
 
 ---
 
 ## 🚀 Quickstart
 
-### Option 1: Docker Run
+### 1. Run with Docker Compose (Recommended)
 
-```bash
-docker run -d \
-  --name zotdeck \
-  -p 8089:8000 \
-  -e ZOT_ENDPOINT=http://zot-registry:5000 \
-  -e ZOT_PUBLIC_DOMAIN=registry.example.com \
-  bhaveshp36/zotdeck:latest
-```
-
-### Option 2: Docker Compose (Zot + ZotDeck)
-
-Deploy both Zot and ZotDeck together in seconds:
+Create a `docker-compose.yml` file to launch Zot and ZotDeck together:
 
 ```yaml
 version: "3.8"
@@ -120,43 +95,108 @@ networks:
     driver: bridge
 ```
 
+Start the stack:
+
+```bash
+docker compose up -d
+```
+
+Open `http://localhost:8089` in your browser to access the ZotDeck dashboard.
+
+---
+
+### 2. Standalone Docker Run
+
+If you already have a running Zot registry:
+
+```bash
+docker run -d \
+  --name zotdeck \
+  -p 8089:8000 \
+  -e ZOT_ENDPOINT=http://<your-zot-host>:5000 \
+  -e ZOT_PUBLIC_DOMAIN=registry.example.com \
+  bhaveshp36/zotdeck:latest
+```
+
 ---
 
 ## ⚙️ Configuration Reference
 
-| Environment Variable | Default Value | Description |
+Configure ZotDeck using standard environment variables:
+
+| Variable | Default Value | Description |
 | :--- | :--- | :--- |
-| `PORT` | `8000` | Internal HTTP listening port for Uvicorn |
-| `ZOT_ENDPOINT` | `http://zot-registry:5000` | Backend network URL to reach the Zot Registry |
-| `ZOT_PUBLIC_DOMAIN` | `registry.example.com` | Public host domain shown in pull/push snippets |
+| `PORT` | `8000` | Internal HTTP listening port for the Uvicorn web server |
+| `ZOT_ENDPOINT` | `http://zot-registry:5000` | Internal network URL pointing to your backend Zot instance |
+| `ZOT_PUBLIC_DOMAIN` | `registry.example.com` | Public host domain used to format Docker and Kubernetes snippets |
 
 ---
 
-## 📊 Performance & Footprint
+## 🏗️ Architecture & Technical Stack
 
-| Metric | ZotDeck | Traditional Enterprise Registries |
-| :--- | :--- | :--- |
-| **Idle Memory (RAM)** | **~40 MiB** | ~1,200 MiB - 1,800 MiB |
-| **Container Count** | **1 single container** | 6 - 9 containers |
-| **External Database** | **None (Zero DB)** | PostgreSQL / Redis / Clair |
-| **Startup Time** | **< 1.0s** | ~45s - 90s |
+```
+   ┌──────────────────────────────────────────────────────────────┐
+   │                        Web Browser                           │
+   │           Alpine.js + Tailwind CSS (Responsive UI)           │
+   └──────────────────────────────┬───────────────────────────────┘
+                                  │ HTTP / JSON API
+                                  ▼
+   ┌──────────────────────────────────────────────────────────────┐
+   │                   ZotDeck Web Service                        │
+   │       FastAPI • Uvicorn • Async HTTPX • Memory ~40 MiB       │
+   │    [Credential Hub] [Manifest Retagger] [Audit Stream]       │
+   └──────────────────────────────┬───────────────────────────────┘
+                                  │ OCI Distribution API (HTTP/2)
+                                  ▼
+   ┌──────────────────────────────────────────────────────────────┐
+   │                    Zot OCI Registry                          │
+   │       Single Binary • Content-Addressable Storage Blob       │
+   └──────────────────────────────────────────────────────────────┘
+```
+
+- **Backend**: Python 3.11 (Alpine Linux base), FastAPI, Uvicorn ASGI, HTTPX async client.
+- **Frontend**: Pure Tailwind CSS, Alpine.js reactive components, inline SVGs (zero Node.js build dependencies, zero external CDN reliance).
+- **Container Hardening**: Unprivileged non-root user (`UID 1000:1000`), minimal attack surface, read-only root compatibility.
 
 ---
 
-## 🛠️ Architecture & Tech Stack
+## ❓ Frequently Asked Questions (FAQ)
 
-- **Backend**: Python 3.11 (Alpine), FastAPI, Uvicorn, HTTPX (async I/O)
-- **Frontend**: Tailwind CSS, Alpine.js (reactive state without heavy node build steps)
-- **Security**: Non-root container execution (`UID 1000`), scoped token isolation
+### How does 1-click retagging work without pulling or re-pushing layers?
+Under the OCI Image Specification, an image tag is a reference pointing to a manifest descriptor digest (`sha256:...`). When you promote or retag an image in ZotDeck, the application performs:
+1. `GET /v2/<repo>/manifests/<source_tag>` to retrieve the manifest payload and media type.
+2. `PUT /v2/<repo>/manifests/<target_tag>` with that exact manifest content.
+Zot associates the new tag pointer with the existing content-addressable blobs in disk storage. The entire operation completes in $< 20\text{ ms}$ over HTTP and consumes zero bandwidth for layer transfers.
+
+### Why use ZotDeck instead of Harbor?
+Harbor is an enterprise-grade solution but requires massive infrastructure (PostgreSQL, Redis, multiple pods, 1.5+ GB RAM). ZotDeck paired with Zot gives you private registry management, layer inspection, and scoped credentials using under 90 MiB RAM total—making it ideal for homelabs, resource-constrained VPS instances, and lightweight CI/CD setups.
+
+### Can ZotDeck manage multiple remote Zot registries?
+Yes. The built-in **Multi-Registry Switcher** allows you to connect multiple internal, staging, and remote production Zot instances, configure independent authentication tokens, and toggle between them on the fly.
+
+### Does ZotDeck store passwords or require an external database?
+No. ZotDeck is completely stateless and does not require an external database. Authentication is verified directly against your configured Zot registry using standard Basic / API token handshakes.
+
+---
+
+## 🎯 Use Cases
+
+- **Self-Hosted Homelabs**: Run a private container registry on a Raspberry Pi or low-cost VPS alongside Nextcloud, Home Assistant, and media servers.
+- **CI/CD Build Farms**: Issue dedicated, scoped API tokens to GitHub Actions, GitLab CI, or Jenkins runners with expiration dates.
+- **Edge Computing & IoT**: Deploy an ultra-light registry on edge appliances with strict memory constraints.
+- **Air-Gapped & Offline Environments**: Single-container deployment with zero external network phone-homes or CDN dependencies.
 
 ---
 
 ## 🤝 Contributing
 
-Contributions, bug reports, and suggestions are welcome! Please refer to [CONTRIBUTING.md](CONTRIBUTING.md) for details on setting up a local development environment.
+Contributions, bug reports, and feature requests are welcome!
+1. Check the [open issues](https://github.com/bhaveshp36/zotdeck/issues).
+2. Read the [Contributing Guide](CONTRIBUTING.md) to set up a local development environment.
+3. Open a Pull Request on branch `main`.
 
 ---
 
 ## 📄 License
 
-This project is open-source software licensed under the [MIT License](LICENSE).
+This project is licensed under the [MIT License](LICENSE).
