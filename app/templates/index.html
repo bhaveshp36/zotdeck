@@ -258,7 +258,8 @@
             <thead class="bg-slate-50 dark:bg-slate-950/50 text-slate-500 dark:text-slate-400 uppercase font-semibold border-b border-slate-200 dark:border-slate-800 whitespace-nowrap">
               <tr>
                 <th class="py-3 px-4">Application / Label</th>
-                <th class="py-3 px-4">Permissions (Scopes)</th>
+                <th class="py-3 px-4">Permissions</th>
+                <th class="py-3 px-4">Repository Scope</th>
                 <th class="py-3 px-4">Created Date</th>
                 <th class="py-3 px-4">Last Used</th>
                 <th class="py-3 px-4">UUID</th>
@@ -282,6 +283,14 @@
                       Pull Only
                     </span>
                   </td>
+                  <td class="py-3 px-4 whitespace-nowrap">
+                    <template x-if="getRepoScope(k)">
+                      <span class="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded text-[10px] font-mono" x-text="getRepoScope(k)"></span>
+                    </template>
+                    <template x-if="!getRepoScope(k)">
+                      <span class="text-slate-400 text-[10px] font-sans">All Repositories (*)</span>
+                    </template>
+                  </td>
                   <td class="py-3 px-4 text-slate-500 dark:text-slate-400 whitespace-nowrap" x-text="k.createdAt ? k.createdAt.slice(0, 19).replace('T', ' ') : '—'"></td>
                   <td class="py-3 px-4 whitespace-nowrap">
                     <span x-show="k.lastUsed && !k.lastUsed.startsWith('0001')" class="text-slate-700 dark:text-slate-300" x-text="k.lastUsed.slice(0, 19).replace('T', ' ')"></span>
@@ -297,7 +306,7 @@
                 </tr>
               </template>
               <tr x-show="filteredKeys.length === 0">
-                <td colspan="6" class="py-8 text-center text-slate-400 font-sans">
+                <td colspan="7" class="py-8 text-center text-slate-400 font-sans">
                   No API keys found. Click "Issue New Key" above to generate credentials.
                 </td>
               </tr>
@@ -821,6 +830,25 @@ build_image:
           </div>
 
           <div>
+            <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Target Repository Scope (Optional)</label>
+            <div class="space-y-2">
+              <select x-model="newKeyForm.repositoryScope"
+                      class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                <option value="">All Repositories (*) — Full registry access</option>
+                <template x-for="r in repositories" :key="r.name">
+                  <option :value="r.name" x-text="'Dedicated repo: ' + r.name"></option>
+                </template>
+                <option value="__custom__">Custom repository / pattern...</option>
+              </select>
+              <div x-show="newKeyForm.repositoryScope === '__custom__'">
+                <input type="text" x-model="newKeyForm.customRepo" placeholder="e.g. apps/backend or team-alpha/*"
+                       class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono">
+              </div>
+            </div>
+            <span class="text-[10px] text-slate-400 mt-1 block">Limit this API key to a specific repository or namespace pattern.</span>
+          </div>
+
+          <div>
             <div class="flex items-center justify-between mb-1.5">
               <label class="block text-xs font-medium text-slate-700 dark:text-slate-300">Expiration (Optional)</label>
               <span x-show="newKeyForm.expiry" class="text-[10px] text-indigo-600 dark:text-indigo-400 font-mono" x-text="'Expires: ' + newKeyForm.expiry"></span>
@@ -908,9 +936,9 @@ build_image:
         </div>
 
         <div>
-          <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Docker Login Command</label>
+          <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Docker Authentication & Push Snippet</label>
           <div class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg p-2.5 font-mono text-[11px] text-slate-800 dark:text-slate-300 relative group overflow-x-auto">
-            <pre><code x-text="'echo \"' + generatedKeyData.apiKey + '\" | docker login ' + registryHost + ' -u admin --password-stdin'"></code></pre>
+            <pre><code x-text="'echo \"' + generatedKeyData.apiKey + '\" | docker login ' + registryHost + ' -u admin --password-stdin' + (generatedKeyData.repoScope ? '\n# Push to scoped repository:\ndocker tag <image> ' + registryHost + '/' + generatedKeyData.repoScope + ':latest\ndocker push ' + registryHost + '/' + generatedKeyData.repoScope + ':latest' : '')"></code></pre>
             <button @click="copyText('echo &quot;' + generatedKeyData.apiKey + '&quot; | docker login ' + registryHost + ' -u admin --password-stdin')"
                     class="mt-2 sm:mt-0 sm:absolute sm:top-2 sm:right-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 px-2 py-1 rounded text-[10px] text-slate-800 dark:text-white">
               Copy Command
@@ -1181,7 +1209,7 @@ build_image:
         openCreateKeyModal: false,
         creatingKey: false,
         expiryDaysSelected: null,
-        newKeyForm: { label: '', canPush: true, expiry: '' },
+        newKeyForm: { label: '', canPush: true, expiry: '', repositoryScope: '', customRepo: '' },
         openKeySuccessModal: false,
         generatedKeyData: { apiKey: '', label: '' },
 
@@ -1386,10 +1414,26 @@ build_image:
           this.newKeyForm.expiry = `${yyyy}-${mm}-${dd}`;
         },
 
+        getRepoScope(k) {
+          if (!k || !k.scopes || !Array.isArray(k.scopes)) return null;
+          const found = k.scopes.find(s => s.startsWith('repo:'));
+          if (found) return found.replace('repo:', '');
+          const nonAction = k.scopes.find(s => !['read', 'create', 'update', 'delete', 'all'].includes(s));
+          return nonAction || null;
+        },
+
         async submitCreateKey() {
           this.creatingKey = true;
           try {
             const scopes = this.newKeyForm.canPush ? ['read', 'create', 'update'] : ['read'];
+            const repoScope = this.newKeyForm.repositoryScope === '__custom__'
+              ? (this.newKeyForm.customRepo || '').trim()
+              : this.newKeyForm.repositoryScope;
+
+            if (repoScope) {
+              scopes.push(`repo:${repoScope}`);
+            }
+
             let exp = null;
             if (this.newKeyForm.expiry) {
               exp = new Date(this.newKeyForm.expiry).toISOString();
@@ -1407,10 +1451,11 @@ build_image:
 
             if (res.ok) {
               const data = await res.json();
+              data.repoScope = repoScope;
               this.openCreateKeyModal = false;
               this.generatedKeyData = data;
               this.openKeySuccessModal = true;
-              this.newKeyForm = { label: '', canPush: true, expiry: '' };
+              this.newKeyForm = { label: '', canPush: true, expiry: '', repositoryScope: '', customRepo: '' };
               this.expiryDaysSelected = null;
               await this.loadKeys();
             } else {

@@ -25,7 +25,7 @@ While enterprise registries like CNCF Harbor deliver powerful features, they oft
 
 | Feature | Description |
 | :--- | :--- |
-| **🔑 Scoped Credential Hub** | Issue and revoke granular API tokens (`read`, `create`, `update`) with customizable expiration presets (30d, 90d, 180d, 1y, 2y) so master passwords are never exposed to CI/CD runners. |
+| **🔑 Scoped Credential Hub** | Issue and revoke granular API tokens (`read`, `create`, `update`) scoped to specific repositories (`repo:myapp` or custom globs) with customizable expiration presets (30d, 90d, 180d, 1y, 2y) so master passwords are never exposed to CI/CD runners. |
 | **📦 Image Catalog & Layer Inspector** | Search repositories, view all tags/versions, inspect compressed layer sizes, content digests, target OS/architecture (`linux/amd64`, `linux/arm64`), and Docker build history. |
 | **🏷️ Instant Zero-Transfer Retagging** | Promote image tags (e.g. promoting `commit-sha` $\rightarrow$ `staging` $\rightarrow$ `latest`) in under 20ms using pure OCI manifest aliasing without downloading or re-uploading layers. |
 | **📁 Repository Lifecycle Management** | Pre-register repository namespaces with custom descriptions before pushing images, and delete repositories or individual tags with safety confirmations. |
@@ -167,6 +167,9 @@ Under the OCI Image Specification, an image tag is a reference pointing to a man
 1. `GET /v2/<repo>/manifests/<source_tag>` to retrieve the manifest payload and media type.
 2. `PUT /v2/<repo>/manifests/<target_tag>` with that exact manifest content.
 Zot associates the new tag pointer with the existing content-addressable blobs in disk storage. The entire operation completes in $< 20\text{ ms}$ over HTTP and consumes zero bandwidth for layer transfers.
+
+### Can I restrict an API key to a specific repository or image?
+Yes. When issuing an API key in ZotDeck, you can bind the credential to a dedicated repository or namespace pattern (e.g. `repo:backend` or custom globs). ZotDeck embeds the repository scope directly into the token's metadata, presents repository badges in the credential dashboard, and automatically formats repository-specific Docker push commands. For strict 403 Forbidden boundary enforcement across multi-tenant setups, Zot pairs this with its declarative `accessControl.repositories` policies.
 
 ### Why use ZotDeck instead of Harbor?
 Harbor is an enterprise-grade solution but requires massive infrastructure (PostgreSQL, Redis, multiple pods, 1.5+ GB RAM). ZotDeck paired with Zot gives you private registry management, layer inspection, and scoped credentials using under 90 MiB RAM total—making it ideal for homelabs, resource-constrained VPS instances, and lightweight CI/CD setups.
