@@ -21,7 +21,7 @@ def format_bytes(size_bytes: int) -> str:
 class ZotClient:
     def __init__(self, base_url: Optional[str] = None, public_url: Optional[str] = None):
         self.base_url = (base_url or os.getenv("ZOT_ENDPOINT", "http://zot-registry:5000")).rstrip("/")
-        self.public_url = (public_url or os.getenv("ZOT_PUBLIC_DOMAIN", "registry.mokshlabs.ai")).rstrip("/")
+        self.public_url = (public_url or os.getenv("ZOT_PUBLIC_DOMAIN", "registry.example.com")).rstrip("/")
 
     def _get_auth_header(self, auth_token: str) -> Dict[str, str]:
         if ":" in auth_token:

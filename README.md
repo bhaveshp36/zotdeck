@@ -1,11 +1,10 @@
 # ZotDeck 🚢
 
-> **Ultra-lightweight Web Dashboard, Scoped Credential Manager, and OCI Image Catalog for Zot Registry.**  
-> Single container • Under **40 MiB RAM** • Zero external database required • 100% OCI Distribution Spec compliant.
+> **Lightweight Web Dashboard, Scoped Credential Manager, and OCI Image Catalog for Zot Registry.**  
+> Single container • Minimal resource footprint • Zero external database required • 100% OCI Distribution Spec compliant.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python: 3.11](https://img.shields.io/badge/Python-3.11-blue.svg)](https://www.python.org/)
-[![Memory: <40MB](https://img.shields.io/badge/RAM-~40MiB-emerald.svg)](#-performance--resource-footprint)
 [![OCI: Distribution Spec](https://img.shields.io/badge/OCI-Distribution%20Spec-indigo.svg)](https://opencontainers.org/)
 [![Docker Pulls](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](#-quickstart)
 
@@ -17,7 +16,7 @@
 
 While enterprise registries like CNCF Harbor deliver powerful features, they often require substantial infrastructure—demanding 1.5+ GB RAM, PostgreSQL, Redis, and 6 to 9 interdependent microservice containers. For homelabs, edge nodes, small teams, and lightweight Kubernetes clusters, this overhead is excessive.
 
-**Zot + ZotDeck** provides a complete, modern container registry solution running in under **90 MiB RAM combined** (Zot ~48 MiB + ZotDeck ~40 MiB), without sacrificing security or developer experience.
+**Zot + ZotDeck** provides a complete, modern, and lightweight container registry management solution without sacrificing enterprise security or developer experience.
 
 ---
 
@@ -49,9 +48,9 @@ While enterprise registries like CNCF Harbor deliver powerful features, they oft
 
 | Capability / Metric | ZotDeck + Zot | CNCF Harbor | Docker Registry UI | Portus |
 | :--- | :--- | :--- | :--- | :--- |
-| **Idle Memory (RAM)** | **~88 MiB total** (48M + 40M) | ~1,500 MiB - 2,000 MiB | ~60 MiB | ~600 MiB |
+| **Resource Footprint** | **Minimal (~88 MiB total)** | Heavy (~1.5 GB - 2 GB) | Minimal (~60 MiB) | Moderate (~600 MiB) |
 | **Container Count** | **2 containers** (Registry + UI) | 6 to 9 containers | 1 UI container | 4+ containers |
-| **External Database** | **None (Zero DB)** | PostgreSQL required | None | MariaDB / MySQL |
+| **External Database** | **None** | PostgreSQL required | None | MariaDB / MySQL |
 | **Cache / Queue Engine** | **None** | Redis required | None | Background workers |
 | **Startup Time** | **< 1.0 second** | 45 - 90 seconds | ~3 seconds | ~30 seconds |
 | **Scoped API Key Generation**| **Yes (`read`, `create`)** | Robot Accounts | No (Basic auth only) | App Tokens |
@@ -150,7 +149,7 @@ Configure ZotDeck using standard environment variables:
                                   ▼
    ┌──────────────────────────────────────────────────────────────┐
    │                   ZotDeck Web Service                        │
-   │       FastAPI • Uvicorn • Async HTTPX • Memory ~40 MiB       │
+   │       FastAPI • Uvicorn • Async HTTPX • Single Container     │
    │    [Credential Hub] [Manifest Retagger] [Audit Stream]       │
    └──────────────────────────────┬───────────────────────────────┘
                                   │ OCI Distribution API (HTTP/2)
