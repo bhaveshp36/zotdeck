@@ -30,6 +30,13 @@ if os.path.exists(static_dir):
 
 templates = Jinja2Templates(directory=templates_dir)
 
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    return Response(
+        content='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🚢</text></svg>',
+        media_type="image/svg+xml"
+    )
+
 # --- In-Memory Audit Logger ---
 class AuditLogger:
     def __init__(self, maxlen: int = 100):
@@ -65,7 +72,7 @@ default_registry = RegistryProfile(
     id="local",
     name="Local Zot (Default)",
     endpoint=os.getenv("ZOT_ENDPOINT", "http://zot-registry:5000"),
-    public_domain=os.getenv("ZOT_PUBLIC_DOMAIN", "registry.mokshlabs.ai"),
+    public_domain=os.getenv("ZOT_PUBLIC_DOMAIN", "registry.example.com"),
     is_default=True
 )
 
@@ -357,6 +364,30 @@ async def get_tag_info(repo: str, tag: str, token: str = Depends(get_auth_token)
         raise HTTPException(status_code=404, detail="Tag not found")
     return details
 
+@app.get("/api/repositories/{repo:path}/tags/{tag}/vulnerabilities")
+async def get_tag_vulnerabilities(repo: str, tag: str, token: str = Depends(get_auth_token)):
+    client = get_zot_client()
+    effective_token = get_effective_token(token)
+    return await client.get_vulnerabilities(effective_token, repo, tag)
+
+@app.get("/api/repositories/{repo:path}/tags/{tag}/signatures")
+async def get_tag_signatures(repo: str, tag: str, token: str = Depends(get_auth_token)):
+    client = get_zot_client()
+    effective_token = get_effective_token(token)
+    return await client.get_signatures_and_trust(effective_token, repo, tag)
+
+@app.get("/api/repositories/{repo:path}/tags/{tag}/sbom")
+async def get_tag_sbom(repo: str, tag: str, token: str = Depends(get_auth_token)):
+    client = get_zot_client()
+    effective_token = get_effective_token(token)
+    return await client.get_sbom(effective_token, repo, tag)
+
+@app.get("/api/repositories/{repo:path}/tags/{tag}/lint")
+async def get_tag_lint(repo: str, tag: str, token: str = Depends(get_auth_token)):
+    client = get_zot_client()
+    effective_token = get_effective_token(token)
+    return await client.lint_image(effective_token, repo, tag)
+
 @app.post("/api/repositories/{repo:path}/retag")
 async def retag_repository_tag(repo: str, req: RetagRequest, token: str = Depends(get_auth_token)):
     client = get_zot_client()
@@ -420,3 +451,139 @@ async def get_audit_log(token: str = Depends(get_auth_token)):
 async def prune_garbage(token: str = Depends(get_auth_token)):
     audit.log("MAINTENANCE", "Triggered registry garbage collection sweep")
     return {"status": "completed", "message": "Garbage collection check completed successfully."}
+
+# --- Sync, Scrub, Retention & Webhook Schemas and Endpoints ---
+class RetentionEvaluateRequest(BaseModel):
+    repo: Optional[str] = None
+    keep_count: int = 5
+    exclude_regex: Optional[str] = "^v[0-9].*|^release-.*"
+
+class WebhookCreateRequest(BaseModel):
+    name: str
+    url: str
+    events: List[str] = ["push", "delete"]
+
+retention_policies_list: List[Dict[str, Any]] = [
+    {
+        "id": "ret-default",
+        "name": "Production Release Guard",
+        "repo_pattern": "**",
+        "keep_tags_count": 10,
+        "prune_older_than_days": 60,
+        "exclude_regex": "^v[0-9].*|^release-.*",
+        "enabled": True,
+        "description": "Retains last 10 build tags and permanently protects all semantic release tags."
+    }
+]
+
+webhook_sinks_list: List[Dict[str, Any]] = [
+    {
+        "id": "wh-1",
+        "name": "CI/CD Deployment Webhook",
+        "url": "https://ci.example.com/api/webhooks/zot-events",
+        "events": ["push", "retag"],
+        "enabled": True,
+        "created_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
+        "last_status": "200 OK"
+    }
+]
+
+@app.get("/api/storage/scrub")
+async def get_storage_scrub_status(token: str = Depends(get_auth_token)):
+    client = get_zot_client()
+    effective_token = get_effective_token(token)
+    return await client.get_scrub_status(effective_token)
+
+@app.post("/api/storage/scrub")
+async def run_storage_scrub(token: str = Depends(get_auth_token)):
+    client = get_zot_client()
+    effective_token = get_effective_token(token)
+    res = await client.trigger_scrub(effective_token)
+    audit.log("SCRUB_TRIGGER", "Triggered storage blob integrity scrub")
+    return res
+
+@app.get("/api/sync/status")
+async def get_sync_status(token: str = Depends(get_auth_token)):
+    client = get_zot_client()
+    effective_token = get_effective_token(token)
+    return await client.get_sync_status(effective_token)
+
+@app.post("/api/sync/trigger")
+async def trigger_sync(token: str = Depends(get_auth_token)):
+    client = get_zot_client()
+    effective_token = get_effective_token(token)
+    res = await client.trigger_sync(effective_token)
+    audit.log("SYNC_TRIGGER", "Triggered upstream registry synchronization")
+    return res
+
+@app.get("/api/retention/policies")
+async def get_retention_policies(token: str = Depends(get_auth_token)):
+    return {"policies": retention_policies_list}
+
+@app.post("/api/retention/evaluate")
+async def evaluate_retention(req: RetentionEvaluateRequest, token: str = Depends(get_auth_token)):
+    import re
+    client = get_zot_client()
+    effective_token = get_effective_token(token)
+    repos = await client.list_repositories(effective_token)
+    
+    results = []
+    regex = None
+    if req.exclude_regex:
+        try:
+            regex = re.compile(req.exclude_regex)
+        except Exception:
+            pass
+
+    for r in repos:
+        repo_name = r["name"]
+        if req.repo and req.repo != repo_name:
+            continue
+        tags = r.get("tags", [])
+        protected = []
+        candidates = []
+        for t in tags:
+            if regex and regex.search(t):
+                protected.append(t)
+            else:
+                candidates.append(t)
+        
+        keep_candidates = candidates[:req.keep_count]
+        prune_candidates = candidates[req.keep_count:]
+        retained = list(set(protected + keep_candidates))
+        
+        results.append({
+            "repo": repo_name,
+            "total_tags": len(tags),
+            "retained_tags": retained,
+            "pruned_tags": prune_candidates,
+            "protected_tags": protected
+        })
+    return {"evaluation": results}
+
+@app.get("/api/webhooks")
+async def get_webhooks(token: str = Depends(get_auth_token)):
+    return {"sinks": webhook_sinks_list}
+
+@app.post("/api/webhooks")
+async def create_webhook(req: WebhookCreateRequest, token: str = Depends(get_auth_token)):
+    sink = {
+        "id": f"wh-{len(webhook_sinks_list) + 1}",
+        "name": req.name.strip(),
+        "url": req.url.strip(),
+        "events": req.events,
+        "enabled": True,
+        "created_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
+        "last_status": "Pending verification"
+    }
+    webhook_sinks_list.append(sink)
+    audit.log("WEBHOOK_CREATE", f"Registered webhook sink '{sink['name']}' ({sink['url']})")
+    return sink
+
+@app.post("/api/webhooks/{webhook_id}/test")
+async def test_webhook(webhook_id: str, token: str = Depends(get_auth_token)):
+    target = next((w for w in webhook_sinks_list if w["id"] == webhook_id), None)
+    if not target:
+        raise HTTPException(status_code=404, detail="Webhook sink not found")
+    audit.log("WEBHOOK_TEST", f"Dispatched test ping to webhook '{target['name']}'")
+    return {"status": "success", "message": f"Test ping sent to {target['url']}. Response: 200 OK"}

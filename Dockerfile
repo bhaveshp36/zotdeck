@@ -8,7 +8,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PORT=8000 \
     ZOT_ENDPOINT=http://zot-registry:5000 \
-    ZOT_PUBLIC_DOMAIN=registry.mokshlabs.ai
+    ZOT_PUBLIC_DOMAIN=registry.example.com
 
 WORKDIR /app
 

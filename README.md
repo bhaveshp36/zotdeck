@@ -27,13 +27,20 @@ While enterprise registries like CNCF Harbor deliver powerful features, they oft
 | :--- | :--- |
 | **🔑 Scoped Credential Hub** | Issue and revoke granular API tokens (`read`, `create`, `update`) scoped to specific repositories (`repo:myapp` or custom globs) with customizable expiration presets (30d, 90d, 180d, 1y, 2y) so master passwords are never exposed to CI/CD runners. |
 | **📦 Image Catalog & Layer Inspector** | Search repositories, view all tags/versions, inspect compressed layer sizes, content digests, target OS/architecture (`linux/amd64`, `linux/arm64`), and Docker build history. |
+| **🛡️ Vulnerability Scanner (CVEs)** | Native Trivy-powered vulnerability inspection displaying severity counts (`Critical`, `High`, `Medium`, `Low`), CVE IDs with NIST NVD links, affected package versions, and fixed versions. |
+| **🔏 Digital Signatures & Image Trust** | Detect and verify **Cosign** and **Notation** signatures via OCI 1.1 Referrers to enforce container provenance and supply-chain trust. |
+| **📋 SBOM Packages Explorer** | Inspect Software Bill of Materials attachments in **SPDX** and **CycloneDX** formats, displaying package components, declared licenses, and Syft/Cosign export commands. |
+| **🧹 Container Security Linter** | Automated 5-point static container audit grading images on unprivileged non-root execution, immutable tagging, layer optimization, and footprint efficiency. |
+| **🔄 Upstream Mirroring & Replication** | Manage Zot as a pull-through cache and automated mirror for Docker Hub, Quay, and GHCR with custom prefix mappings and on-demand sync triggers. |
+| **⏳ Tag Retention Simulator** | Interactive lifecycle rule builder to eliminate obsolete CI/CD build tags with dry-run simulation while protecting semantic releases (`v*`, `release-*`). |
+| **🔔 Webhook Event Sinks** | Register external notification endpoints to dispatch instant payloads to Slack, Discord, or CI pipelines on image push, retag, or deletion events. |
+| **🔍 Storage Integrity & Bit-Rot Scrubbing** | Re-verify content-addressable storage blobs on disk against SHA-256 descriptors to prevent silent filesystem degradation or bit-rot. |
 | **🏷️ Instant Zero-Transfer Retagging** | Promote image tags (e.g. promoting `commit-sha` $\rightarrow$ `staging` $\rightarrow$ `latest`) in under 20ms using pure OCI manifest aliasing without downloading or re-uploading layers. |
 | **📁 Repository Lifecycle Management** | Pre-register repository namespaces with custom descriptions before pushing images, and delete repositories or individual tags with safety confirmations. |
 | **🌐 Multi-Registry Connection Switcher** | Manage local, staging, and remote Zot instances from a unified interface with per-registry credentials and connection verification. |
 | **🌓 Dual Light & Dark Themes** | Responsive modern UI built with Tailwind CSS, system theme detection, `localStorage` persistence, and pure inline SVGs (zero external icon CDN dependencies). |
 | **💻 Multi-Platform Code Generator** | Copy-paste deployment snippets for Docker CLI, Podman, Kubernetes `imagePullSecrets`, Helm OCI, GitHub Actions, and GitLab CI. |
 | **🛡️ Real-Time Security Audit Log** | In-memory activity stream tracking logins, API key creation/revocation, tag promotions, and deletions. |
-| **🧹 Deduplication & Storage Health** | Calculates deduplicated layer footprints across content-addressable storage blobs and triggers on-demand garbage collection sweeps. |
 | **📖 OpenAPI / Swagger Documentation** | Interactive REST API documentation available out of the box at `/docs`. |
 
 ---

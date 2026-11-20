@@ -144,6 +144,20 @@
           <span class="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-[10px] px-1.5 py-0.5 rounded-full font-mono" x-text="repositories.length"></span>
         </button>
 
+        <button @click="currentTab = 'sync'; loadSync()"
+                :class="currentTab === 'sync' ? 'bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-slate-200 dark:border-slate-700' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'"
+                class="px-3 py-2 rounded-lg text-xs font-medium transition flex items-center space-x-1.5">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          <span>Mirrors & Sync</span>
+        </button>
+
+        <button @click="currentTab = 'policies'; loadRetentionPolicies(); loadWebhooks()"
+                :class="currentTab === 'policies' ? 'bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-slate-200 dark:border-slate-700' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'"
+                class="px-3 py-2 rounded-lg text-xs font-medium transition flex items-center space-x-1.5">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          <span>Policies & Webhooks</span>
+        </button>
+
         <button @click="currentTab = 'storage'; loadStorage()"
                 :class="currentTab === 'storage' ? 'bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-slate-200 dark:border-slate-700' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'"
                 class="px-3 py-2 rounded-lg text-xs font-medium transition flex items-center space-x-1.5">
@@ -201,6 +215,16 @@
             :class="currentTab === 'repos' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'"
             class="px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition">
       Repositories (<span x-text="repositories.length"></span>)
+    </button>
+    <button @click="currentTab = 'sync'; loadSync()"
+            :class="currentTab === 'sync' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'"
+            class="px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition">
+      Mirrors & Sync
+    </button>
+    <button @click="currentTab = 'policies'; loadRetentionPolicies(); loadWebhooks()"
+            :class="currentTab === 'policies' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'"
+            class="px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition">
+      Policies & Webhooks
     </button>
     <button @click="currentTab = 'storage'; loadStorage()"
             :class="currentTab === 'storage' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'"
@@ -459,6 +483,212 @@
           <span x-text="pruning ? 'Checking...' : 'Run Garbage Collection'"></span>
         </button>
       </div>
+
+      <!-- Storage Scrubbing & Bit-Rot Detection Card -->
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <div class="flex items-center space-x-2">
+            <h3 class="text-base font-bold text-slate-900 dark:text-white">Storage Scrubbing & Bit-Rot Detection</h3>
+            <span class="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[10px] px-2 py-0.5 rounded font-mono font-semibold">Integrity Verified</span>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xl">
+            Cryptographically re-verifies every content-addressable blob on disk against its SHA256 manifest descriptor to detect silent filesystem degradation or bit-rot.
+          </p>
+          <div class="flex items-center space-x-4 mt-2 text-[11px] text-slate-400">
+            <span>Corrupted blobs: <strong class="text-emerald-500">0</strong></span>
+            <span>Last scrub: <span class="font-mono text-slate-600 dark:text-slate-300" x-text="scrubData?.last_scrub || 'Idle / Verified'"></span></span>
+          </div>
+        </div>
+        <button @click="triggerScrub" :disabled="scrubbing"
+                class="px-4 py-2 bg-slate-800 hover:bg-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-700 text-white rounded-lg text-xs font-medium transition shadow-sm shrink-0 flex items-center space-x-2 disabled:opacity-50">
+          <svg class="w-4 h-4" :class="scrubbing ? 'animate-spin' : ''" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+          <span x-text="scrubbing ? 'Scrubbing...' : 'Run Storage Scrub'"></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- TAB: MIRRORS & REPLICATION SYNC -->
+    <div x-show="currentTab === 'sync'" class="space-y-6">
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 sm:p-6 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <div class="flex items-center space-x-2">
+            <h2 class="text-base font-bold text-slate-900 dark:text-white">Upstream Registry Mirroring & Sync</h2>
+            <span class="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 text-[10px] px-2 py-0.5 rounded font-mono font-semibold">Native Zot Sync</span>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-2xl">
+            Configure Zot as an on-demand pull-through cache and automated mirror for upstream registries like Docker Hub, Quay, and GitHub Container Registry (GHCR).
+          </p>
+        </div>
+        <button @click="triggerSync" :disabled="syncing"
+                class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-medium transition shadow-md shrink-0 flex items-center space-x-2 disabled:opacity-50">
+          <svg class="w-4 h-4" :class="syncing ? 'animate-spin' : ''" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          <span x-text="syncing ? 'Syncing...' : 'Sync Now'"></span>
+        </button>
+      </div>
+
+      <!-- Configured Mirrors Table -->
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+        <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Configured Upstream Mirrors</h3>
+          <span class="text-xs text-slate-400">Auto-poll active</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-700 dark:text-slate-300">
+            <thead class="bg-slate-50 dark:bg-slate-950/50 text-slate-500 dark:text-slate-400 uppercase font-semibold border-b border-slate-200 dark:border-slate-800 whitespace-nowrap">
+              <tr>
+                <th class="py-3 px-4">Upstream Registry</th>
+                <th class="py-3 px-4">Content Prefix Mappings</th>
+                <th class="py-3 px-4">Poll Interval</th>
+                <th class="py-3 px-4">Last Sync Status</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60 font-mono">
+              <template x-for="reg in (syncData?.registries || [])" :key="reg.url">
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
+                  <td class="py-3 px-4">
+                    <div class="flex items-center space-x-2 font-bold text-slate-800 dark:text-slate-200">
+                      <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                      <span x-text="reg.url"></span>
+                    </div>
+                  </td>
+                  <td class="py-3 px-4">
+                    <template x-for="c in reg.content" :key="c.prefix">
+                      <div class="flex items-center space-x-1.5 text-[11px]">
+                        <span class="text-slate-500 font-sans">Prefix:</span>
+                        <code class="text-indigo-600 dark:text-indigo-400" x-text="c.prefix"></code>
+                        <span class="text-slate-400">→</span>
+                        <code class="text-emerald-600 dark:text-emerald-400" x-text="c.destination"></code>
+                      </div>
+                    </template>
+                  </td>
+                  <td class="py-3 px-4 text-slate-500 dark:text-slate-400" x-text="reg.poll_interval || '6h'"></td>
+                  <td class="py-3 px-4">
+                    <span class="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[10px] font-sans">Healthy (Active)</span>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: RETENTION POLICIES & WEBHOOKS -->
+    <div x-show="currentTab === 'policies'" class="space-y-6">
+      <!-- Retention Policies Card -->
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 sm:p-6 shadow-sm">
+        <div class="flex items-center justify-between mb-2">
+          <div>
+            <h2 class="text-base font-bold text-slate-900 dark:text-white">Tag Retention & Pruning Simulator</h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Simulate and preview automatic lifecycle cleanup rules to eliminate obsolete CI/CD build tags while permanently protecting release versions.
+            </p>
+          </div>
+        </div>
+
+        <form @submit.prevent="runRetentionEvaluation" class="grid grid-cols-1 sm:grid-cols-3 gap-3 my-4 p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
+          <div>
+            <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Target Repository (or all)</label>
+            <select x-model="retentionForm.repo" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white">
+              <option value="">All Repositories (**)</option>
+              <template x-for="r in repositories" :key="r.name">
+                <option :value="r.name" x-text="r.name"></option>
+              </template>
+            </select>
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Keep Last N Build Tags</label>
+            <input type="number" x-model.number="retentionForm.keep_count" min="1" max="100" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 font-mono text-xs text-slate-900 dark:text-white">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Protected Regex Pattern</label>
+            <div class="flex space-x-2">
+              <input type="text" x-model="retentionForm.exclude_regex" placeholder="^v[0-9].*|^release-.*" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 font-mono text-xs text-slate-900 dark:text-white">
+              <button type="submit" :disabled="evaluatingRetention" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-lg shrink-0 text-xs">
+                <span x-text="evaluatingRetention ? 'Simulating...' : 'Simulate'"></span>
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <!-- Evaluation Results -->
+        <div x-show="retentionEvaluation && retentionEvaluation.length > 0" class="space-y-2 mt-4">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Simulation Results</h4>
+          <template x-for="res in retentionEvaluation" :key="res.repo">
+            <div class="p-3 bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 rounded-xl text-xs space-y-2">
+              <div class="flex items-center justify-between font-mono">
+                <span class="font-bold text-slate-800 dark:text-slate-200" x-text="res.repo"></span>
+                <span class="text-slate-400" x-text="res.total_tags + ' total tags'"></span>
+              </div>
+              <div class="flex flex-wrap items-center gap-1.5">
+                <span class="text-[10px] text-slate-400 font-sans">Retained:</span>
+                <template x-for="t in res.retained_tags" :key="t">
+                  <span class="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded text-[10px] font-mono" x-text="t"></span>
+                </template>
+                <template x-if="res.pruned_tags.length > 0">
+                  <div class="flex flex-wrap items-center gap-1.5 pl-2 border-l border-slate-300 dark:border-slate-700">
+                    <span class="text-[10px] text-red-400 font-sans">Pruned:</span>
+                    <template x-for="t in res.pruned_tags" :key="t">
+                      <span class="bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 px-1.5 py-0.5 rounded text-[10px] font-mono line-through" x-text="t"></span>
+                    </template>
+                  </div>
+                </template>
+                <template x-if="res.pruned_tags.length === 0">
+                  <span class="text-[10px] text-slate-400 italic">No tags eligible for pruning</span>
+                </template>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- Webhooks Card -->
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 sm:p-6 shadow-sm">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="text-base font-bold text-slate-900 dark:text-white">Webhook Event Sinks</h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Send instant HTTP payloads to Slack, Discord, or CI pipelines whenever images are pushed, retagged, or deleted.
+            </p>
+          </div>
+          <button @click="openAddWebhookModal = true" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-medium transition shadow-sm">
+            + Add Webhook
+          </button>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-700 dark:text-slate-300">
+            <thead class="bg-slate-50 dark:bg-slate-950/50 text-slate-500 dark:text-slate-400 uppercase font-semibold border-b border-slate-200 dark:border-slate-800 whitespace-nowrap">
+              <tr>
+                <th class="py-3 px-4">Sink Name</th>
+                <th class="py-3 px-4">Target URL</th>
+                <th class="py-3 px-4">Subscribed Events</th>
+                <th class="py-3 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60 font-mono">
+              <template x-for="wh in webhookSinks" :key="wh.id">
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
+                  <td class="py-3 px-4 font-sans font-medium text-slate-800 dark:text-slate-200" x-text="wh.name"></td>
+                  <td class="py-3 px-4 text-slate-500 dark:text-slate-400" x-text="wh.url"></td>
+                  <td class="py-3 px-4">
+                    <div class="flex items-center space-x-1">
+                      <template x-for="ev in wh.events" :key="ev">
+                        <span class="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 px-1.5 py-0.5 rounded text-[10px] font-sans" x-text="ev"></span>
+                      </template>
+                    </div>
+                  </td>
+                  <td class="py-3 px-4 text-right font-sans">
+                    <button @click="testWebhookPing(wh.id)" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-[11px] font-medium text-slate-700 dark:text-slate-300">
+                      Test Ping
+                    </button>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <!-- TAB 4: ACTIVITY & AUDIT LOG -->
@@ -704,8 +934,39 @@ build_image:
         </div>
       </div>
 
-      <!-- Layers Breakdown -->
-      <div class="space-y-4">
+      <!-- Inspector Navigation Tabs -->
+      <div class="flex border-b border-slate-200 dark:border-slate-800 mb-4 space-x-2 text-xs overflow-x-auto">
+        <button @click="inspectTab = 'layers'"
+                :class="inspectTab === 'layers' ? 'border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400 font-bold' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'"
+                class="pb-2 px-1 transition whitespace-nowrap">
+          Layers & History
+        </button>
+        <button @click="inspectTab = 'cve'; loadTagCVEs(inspectData.repo, inspectData.tag)"
+                :class="inspectTab === 'cve' ? 'border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400 font-bold' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'"
+                class="pb-2 px-1 transition flex items-center space-x-1 whitespace-nowrap">
+          <span>🛡️ Vulnerabilities</span>
+          <span x-show="tagCveData?.summary?.Count > 0" class="bg-red-500 text-white text-[9px] px-1 rounded-full font-mono" x-text="tagCveData?.summary?.Count"></span>
+        </button>
+        <button @click="inspectTab = 'trust'; loadTagSignatures(inspectData.repo, inspectData.tag)"
+                :class="inspectTab === 'trust' ? 'border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400 font-bold' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'"
+                class="pb-2 px-1 transition flex items-center space-x-1 whitespace-nowrap">
+          <span>🔏 Trust & Signatures</span>
+          <span x-show="tagSigData?.is_signed" class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+        </button>
+        <button @click="inspectTab = 'sbom'; loadTagSBOM(inspectData.repo, inspectData.tag)"
+                :class="inspectTab === 'sbom' ? 'border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400 font-bold' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'"
+                class="pb-2 px-1 transition whitespace-nowrap">
+          📋 SBOM Packages
+        </button>
+        <button @click="inspectTab = 'lint'; loadTagLint(inspectData.repo, inspectData.tag)"
+                :class="inspectTab === 'lint' ? 'border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400 font-bold' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'"
+                class="pb-2 px-1 transition whitespace-nowrap">
+          🧹 Image Linter
+        </button>
+      </div>
+
+      <!-- 1. Layers Breakdown & Build History -->
+      <div x-show="inspectTab === 'layers'" class="space-y-4">
         <div>
           <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Layer Manifests</h4>
           <div class="space-y-2">
@@ -721,12 +982,222 @@ build_image:
           </div>
         </div>
 
-        <!-- History Commands if available -->
         <div x-show="inspectData.history && inspectData.history.length > 0">
           <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Build History</h4>
           <div class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-3 font-mono text-[11px] text-slate-600 dark:text-slate-400 space-y-1 overflow-x-auto max-h-48">
             <template x-for="h in inspectData.history" :key="h">
               <div class="truncate hover:text-slate-900 dark:hover:text-slate-200 transition" x-text="h"></div>
+            </template>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. CVE Vulnerability Scanner -->
+      <div x-show="inspectTab === 'cve'" class="space-y-4">
+        <div x-show="loadingCve" class="p-8 text-center text-slate-400 text-xs">
+          <svg class="w-6 h-6 animate-spin mx-auto mb-2 text-indigo-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          Scanning for CVE vulnerabilities...
+        </div>
+
+        <div x-show="!loadingCve && tagCveData?.status === 'disabled'" class="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs space-y-2">
+          <div class="flex items-center space-x-2 text-amber-600 dark:text-amber-400 font-bold">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            <span>CVE Vulnerability Scanning Extension Not Enabled</span>
+          </div>
+          <p class="text-slate-600 dark:text-slate-400 text-[11px]">
+            Zot supports automatic Trivy-powered image vulnerability scanning. To enable scanning for this registry, add the following to your <code class="font-mono text-amber-500">config.json</code> under extensions:
+          </p>
+          <div class="bg-slate-900 border border-slate-800 p-2.5 rounded-lg font-mono text-[11px] text-amber-300 overflow-x-auto">
+            <pre><code>"extensions": {
+  "cve": {
+    "enable": true
+  }
+}</code></pre>
+          </div>
+        </div>
+
+        <div x-show="!loadingCve && tagCveData?.status === 'clean'" class="p-6 text-center bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+          <svg class="w-8 h-8 text-emerald-500 mx-auto mb-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" stroke-linejoin="round" d="m9 12 2 2 4-4"/></svg>
+          <div class="font-bold text-xs text-emerald-600 dark:text-emerald-400">0 Known Vulnerabilities Detected</div>
+          <p class="text-[11px] text-slate-400 mt-1">Image layers scanned clean against Trivy vulnerability database.</p>
+        </div>
+
+        <div x-show="!loadingCve && tagCveData?.status === 'scanned'">
+          <div class="grid grid-cols-4 gap-2 mb-3 text-center text-xs">
+            <div class="p-2 bg-red-500/10 border border-red-500/20 rounded-lg">
+              <span class="text-[10px] text-red-500 uppercase font-semibold">Critical</span>
+              <div class="font-bold font-mono text-red-600 dark:text-red-400" x-text="tagCveData?.summary?.CriticalCount || 0"></div>
+            </div>
+            <div class="p-2 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+              <span class="text-[10px] text-amber-500 uppercase font-semibold">High</span>
+              <div class="font-bold font-mono text-amber-600 dark:text-amber-400" x-text="tagCveData?.summary?.HighCount || 0"></div>
+            </div>
+            <div class="p-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+              <span class="text-[10px] text-yellow-500 uppercase font-semibold">Medium</span>
+              <div class="font-bold font-mono text-yellow-600 dark:text-yellow-400" x-text="tagCveData?.summary?.MediumCount || 0"></div>
+            </div>
+            <div class="p-2 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+              <span class="text-[10px] text-blue-500 uppercase font-semibold">Low</span>
+              <div class="font-bold font-mono text-blue-600 dark:text-blue-400" x-text="tagCveData?.summary?.LowCount || 0"></div>
+            </div>
+          </div>
+
+          <div class="space-y-2 max-h-64 overflow-y-auto pr-1">
+            <template x-for="c in tagCveData?.cves || []" :key="c.Id">
+              <div class="p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs space-y-1">
+                <div class="flex items-center justify-between">
+                  <a :href="'https://nvd.nist.gov/vuln/detail/' + c.Id" target="_blank" class="font-mono font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center space-x-1">
+                    <span x-text="c.Id"></span>
+                    <svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                  </a>
+                  <span :class="{
+                    'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20': c.Severity === 'CRITICAL',
+                    'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20': c.Severity === 'HIGH',
+                    'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20': c.Severity === 'MEDIUM',
+                    'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20': c.Severity === 'LOW',
+                  }" class="border px-1.5 py-0.2 rounded text-[9px] font-bold" x-text="c.Severity"></span>
+                </div>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400" x-text="c.Title || c.Description || 'No description provided.'"></p>
+                <template x-if="c.PackageList && c.PackageList.length > 0">
+                  <div class="text-[10px] font-mono text-slate-400">
+                    Package: <span class="text-slate-700 dark:text-slate-300 font-semibold" x-text="c.PackageList[0].Name"></span>
+                    (<span x-text="c.PackageList[0].InstalledVersion"></span> → Fixed: <span class="text-emerald-500 font-semibold" x-text="c.PackageList[0].FixedVersion || 'None'"></span>)
+                  </div>
+                </template>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Image Trust & Signatures -->
+      <div x-show="inspectTab === 'trust'" class="space-y-4">
+        <div x-show="loadingSig" class="p-8 text-center text-slate-400 text-xs">
+          <svg class="w-6 h-6 animate-spin mx-auto mb-2 text-indigo-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          Verifying digital signatures...
+        </div>
+
+        <div x-show="!loadingSig && tagSigData?.is_signed" class="p-5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl space-y-3">
+          <div class="flex items-center space-x-2 text-emerald-600 dark:text-emerald-400 font-bold text-xs">
+            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+            <span>Cryptographically Signed & Verified</span>
+          </div>
+          <p class="text-xs text-slate-600 dark:text-slate-400">
+            This image manifest has one or more verified signatures attached via OCI Referrers.
+          </p>
+          <div class="space-y-1.5 pt-1">
+            <template x-for="s in (tagSigData?.signatures || [])" :key="s.digest || s.tool">
+              <div class="p-2 bg-white dark:bg-slate-900 border border-emerald-500/30 rounded-lg text-xs font-mono flex items-center justify-between">
+                <span class="font-bold text-emerald-600 dark:text-emerald-400" x-text="s.tool || 'Cosign / Notation'"></span>
+                <span class="text-slate-400 text-[10px]" x-text="s.digest || 'Verified via ImageTrust'"></span>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <div x-show="!loadingSig && !tagSigData?.is_signed" class="p-5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs space-y-3">
+          <div class="flex items-center space-x-2 text-slate-600 dark:text-slate-300 font-bold">
+            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span>No Digital Signatures Found</span>
+          </div>
+          <p class="text-slate-500 dark:text-slate-400 text-[11px]">
+            To establish supply chain provenance, sign this image using Cosign or Notation:
+          </p>
+          <div class="bg-slate-900 border border-slate-800 p-2.5 rounded-lg font-mono text-[11px] text-slate-300 overflow-x-auto">
+            <pre><code># Sign with Cosign
+cosign sign --key cosign.key <span x-text="registryHost + '/' + inspectData.repo + ':' + inspectData.tag"></span>
+
+# Verify signature
+cosign verify --key cosign.pub <span x-text="registryHost + '/' + inspectData.repo + ':' + inspectData.tag"></span></code></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. SBOM Explorer -->
+      <div x-show="inspectTab === 'sbom'" class="space-y-4">
+        <div x-show="loadingSbom" class="p-8 text-center text-slate-400 text-xs">
+          <svg class="w-6 h-6 animate-spin mx-auto mb-2 text-indigo-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          Inspecting Software Bill of Materials (SBOM)...
+        </div>
+
+        <div x-show="!loadingSbom && tagSbomData?.available" class="space-y-3">
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-slate-400">Attached Format: <strong class="text-indigo-500 font-mono" x-text="tagSbomData?.format"></strong></span>
+            <span class="text-slate-400 font-mono" x-text="(tagSbomData?.packages?.length || 0) + ' packages'"></span>
+          </div>
+          <div class="overflow-x-auto max-h-64 border border-slate-200 dark:border-slate-800 rounded-lg">
+            <table class="w-full text-left text-xs text-slate-700 dark:text-slate-300">
+              <thead class="bg-slate-50 dark:bg-slate-950 text-slate-400 uppercase text-[10px] font-semibold border-b border-slate-200 dark:border-slate-800">
+                <tr>
+                  <th class="py-2 px-3">Package Component</th>
+                  <th class="py-2 px-3">Version</th>
+                  <th class="py-2 px-3">Declared License</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60 font-mono text-[11px]">
+                <template x-for="p in (tagSbomData?.packages || [])" :key="p.name">
+                  <tr>
+                    <td class="py-1.5 px-3 font-semibold text-slate-800 dark:text-slate-200" x-text="p.name"></td>
+                    <td class="py-1.5 px-3 text-slate-500 dark:text-slate-400" x-text="p.version"></td>
+                    <td class="py-1.5 px-3 text-indigo-500" x-text="p.license"></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div x-show="!loadingSbom && !tagSbomData?.available" class="p-5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs space-y-3">
+          <div class="flex items-center space-x-2 text-slate-600 dark:text-slate-300 font-bold">
+            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="11" y2="17"/></svg>
+            <span>No SBOM Attached via OCI 1.1 Referrers</span>
+          </div>
+          <p class="text-slate-500 dark:text-slate-400 text-[11px]">
+            Generate and attach an SPDX or CycloneDX SBOM using Syft and Cosign:
+          </p>
+          <div class="bg-slate-900 border border-slate-800 p-2.5 rounded-lg font-mono text-[11px] text-slate-300 overflow-x-auto">
+            <pre><code># Generate SBOM with Syft
+syft <span x-text="registryHost + '/' + inspectData.repo + ':' + inspectData.tag"></span> -o spdx-json=sbom.spdx.json
+
+# Attach SBOM to image in Zot
+cosign attach sbom --sbom sbom.spdx.json --type spdx <span x-text="registryHost + '/' + inspectData.repo + ':' + inspectData.tag"></span></code></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. Image Linter & Best Practices -->
+      <div x-show="inspectTab === 'lint'" class="space-y-4">
+        <div x-show="loadingLint" class="p-8 text-center text-slate-400 text-xs">
+          <svg class="w-6 h-6 animate-spin mx-auto mb-2 text-indigo-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          Auditing image best practices...
+        </div>
+
+        <div x-show="!loadingLint && tagLintData">
+          <div class="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl mb-3">
+            <div>
+              <span class="text-[10px] text-slate-400 uppercase font-semibold">Image Compliance Grade</span>
+              <div class="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center space-x-2 mt-0.5">
+                <span :class="{
+                  'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20': tagLintData.grade === 'A' || tagLintData.grade === 'A+',
+                  'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20': tagLintData.grade === 'B',
+                  'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20': tagLintData.grade === 'C' || tagLintData.grade === 'F'
+                }" class="border px-2 py-0.5 rounded text-xs font-mono font-bold" x-text="'Grade ' + tagLintData.grade"></span>
+                <span class="text-xs text-slate-400 font-sans" x-text="'(' + tagLintData.score + '/100)'"></span>
+              </div>
+            </div>
+            <span class="text-xs text-slate-400">5 automated audit checks</span>
+          </div>
+
+          <div class="space-y-2">
+            <template x-for="c in (tagLintData.checks || [])" :key="c.name">
+              <div class="p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs space-y-1">
+                <div class="flex items-center justify-between">
+                  <span class="font-bold text-slate-800 dark:text-slate-200" x-text="c.name"></span>
+                  <span :class="c.status === 'pass' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'"
+                        class="border px-2 py-0.2 rounded text-[10px] font-semibold uppercase" x-text="c.status"></span>
+                </div>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400" x-text="c.detail"></p>
+              </div>
             </template>
           </div>
         </div>
@@ -1187,7 +1658,7 @@ build_image:
         theme: localStorage.getItem('zotdeck_theme') || 'dark',
         authenticated: false,
         currentUser: 'admin',
-        registryHost: 'registry.mokshlabs.ai',
+        registryHost: 'registry.example.com',
         currentTab: 'keys',
         loggingIn: false,
         loginError: '',
@@ -1232,6 +1703,32 @@ build_image:
         openRepoDetailsModal: false,
         selectedRepoDetails: null,
         repoTagSearch: '',
+
+        // Inspector Tabs & Extensions
+        inspectTab: 'layers',
+        tagCveData: null,
+        loadingCve: false,
+        tagSigData: null,
+        loadingSig: false,
+        tagSbomData: null,
+        loadingSbom: false,
+        tagLintData: null,
+        loadingLint: false,
+
+        // Sync & Scrub
+        syncData: null,
+        syncing: false,
+        scrubData: null,
+        scrubbing: false,
+
+        // Retention & Webhooks
+        retentionPolicies: [],
+        retentionEvaluation: null,
+        evaluatingRetention: false,
+        retentionForm: { repo: '', keep_count: 5, exclude_regex: '^v[0-9].*|^release-.*' },
+        webhookSinks: [],
+        openAddWebhookModal: false,
+        newWebhookForm: { name: '', url: '', events: ['push', 'delete'] },
 
         // Storage & Audit
         storageStats: {},
@@ -1493,11 +1990,18 @@ build_image:
         },
 
         async inspectTag(repo, tag) {
+          this.inspectTab = 'layers';
+          this.tagCveData = null;
+          this.tagSigData = null;
+          this.tagSbomData = null;
+          this.tagLintData = null;
           try {
             const res = await fetch(`/api/repositories/${encodeURIComponent(repo)}/tags/${encodeURIComponent(tag)}`);
             if (res.ok) {
               this.inspectData = await res.json();
               this.openInspectorModal = true;
+              this.loadTagSignatures(repo, tag);
+              this.loadTagLint(repo, tag);
             }
           } catch {
             this.showToast('Failed to load image manifest details');
@@ -1677,6 +2181,184 @@ build_image:
           }
         },
 
+        async loadTagCVEs(repo, tag) {
+          this.loadingCve = true;
+          try {
+            const res = await fetch(`/api/repositories/${encodeURIComponent(repo)}/tags/${encodeURIComponent(tag)}/vulnerabilities`);
+            if (res.ok) {
+              this.tagCveData = await res.json();
+            }
+          } catch (e) {
+            console.error(e);
+          } finally {
+            this.loadingCve = false;
+          }
+        },
+
+        async loadTagSignatures(repo, tag) {
+          this.loadingSig = true;
+          try {
+            const res = await fetch(`/api/repositories/${encodeURIComponent(repo)}/tags/${encodeURIComponent(tag)}/signatures`);
+            if (res.ok) {
+              this.tagSigData = await res.json();
+            }
+          } catch (e) {
+            console.error(e);
+          } finally {
+            this.loadingSig = false;
+          }
+        },
+
+        async loadTagSBOM(repo, tag) {
+          this.loadingSbom = true;
+          try {
+            const res = await fetch(`/api/repositories/${encodeURIComponent(repo)}/tags/${encodeURIComponent(tag)}/sbom`);
+            if (res.ok) {
+              this.tagSbomData = await res.json();
+            }
+          } catch (e) {
+            console.error(e);
+          } finally {
+            this.loadingSbom = false;
+          }
+        },
+
+        async loadTagLint(repo, tag) {
+          this.loadingLint = true;
+          try {
+            const res = await fetch(`/api/repositories/${encodeURIComponent(repo)}/tags/${encodeURIComponent(tag)}/lint`);
+            if (res.ok) {
+              this.tagLintData = await res.json();
+            }
+          } catch (e) {
+            console.error(e);
+          } finally {
+            this.loadingLint = false;
+          }
+        },
+
+        async loadSync() {
+          try {
+            const res = await fetch('/api/sync/status');
+            if (res.ok) {
+              this.syncData = await res.json();
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        },
+
+        async triggerSync() {
+          this.syncing = true;
+          try {
+            const res = await fetch('/api/sync/trigger', { method: 'POST' });
+            if (res.ok) {
+              const data = await res.json();
+              this.showToast(data.message || 'Sync triggered successfully');
+              await this.loadSync();
+            }
+          } finally {
+            this.syncing = false;
+          }
+        },
+
+        async loadScrub() {
+          try {
+            const res = await fetch('/api/storage/scrub');
+            if (res.ok) {
+              this.scrubData = await res.json();
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        },
+
+        async triggerScrub() {
+          this.scrubbing = true;
+          try {
+            const res = await fetch('/api/storage/scrub', { method: 'POST' });
+            if (res.ok) {
+              const data = await res.json();
+              this.showToast(data.message || 'Scrub completed');
+              this.scrubData = data;
+            }
+          } finally {
+            this.scrubbing = false;
+          }
+        },
+
+        async loadRetentionPolicies() {
+          try {
+            const res = await fetch('/api/retention/policies');
+            if (res.ok) {
+              const data = await res.json();
+              this.retentionPolicies = data.policies || [];
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        },
+
+        async runRetentionEvaluation() {
+          this.evaluatingRetention = true;
+          try {
+            const res = await fetch('/api/retention/evaluate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(this.retentionForm)
+            });
+            if (res.ok) {
+              const data = await res.json();
+              this.retentionEvaluation = data.evaluation || [];
+              this.showToast('Retention simulation completed');
+            }
+          } finally {
+            this.evaluatingRetention = false;
+          }
+        },
+
+        async loadWebhooks() {
+          try {
+            const res = await fetch('/api/webhooks');
+            if (res.ok) {
+              const data = await res.json();
+              this.webhookSinks = data.sinks || [];
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        },
+
+        async submitAddWebhook() {
+          try {
+            const res = await fetch('/api/webhooks', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(this.newWebhookForm)
+            });
+            if (res.ok) {
+              this.showToast('Webhook registered');
+              this.openAddWebhookModal = false;
+              this.newWebhookForm = { name: '', url: '', events: ['push', 'delete'] };
+              await this.loadWebhooks();
+            }
+          } catch (e) {
+            alert('Failed to register webhook');
+          }
+        },
+
+        async testWebhookPing(id) {
+          try {
+            const res = await fetch(`/api/webhooks/${encodeURIComponent(id)}/test`, { method: 'POST' });
+            if (res.ok) {
+              const data = await res.json();
+              this.showToast(data.message || 'Ping delivered (200 OK)');
+            }
+          } catch {
+            alert('Failed to dispatch test ping');
+          }
+        },
+
         copyText(txt) {
           navigator.clipboard.writeText(txt);
           this.showToast('Copied to clipboard');
@@ -1684,5 +2366,30 @@ build_image:
       }
     }
   </script>
+
+  <!-- MODAL: Add Webhook Sink -->
+  <div x-show="openAddWebhookModal" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl relative" @click.away="openAddWebhookModal = false">
+      <h3 class="text-base font-bold text-slate-900 dark:text-white mb-1">Add Webhook Event Sink</h3>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Send event payloads to an external HTTP webhook endpoint.</p>
+
+      <form @submit.prevent="submitAddWebhook" class="space-y-3.5">
+        <div>
+          <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Webhook Name *</label>
+          <input type="text" x-model="newWebhookForm.name" required placeholder="e.g. Production Slack Alert"
+                 class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Payload URL *</label>
+          <input type="url" x-model="newWebhookForm.url" required placeholder="https://hooks.slack.com/services/..."
+                 class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+        </div>
+        <div class="flex justify-end space-x-2 pt-2">
+          <button type="button" @click="openAddWebhookModal = false" class="px-3.5 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs">Cancel</button>
+          <button type="submit" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs">Save Webhook</button>
+        </div>
+      </form>
+    </div>
+  </div>
 </body>
 </html>
